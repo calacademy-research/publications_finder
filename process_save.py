@@ -207,24 +207,25 @@ def combine_authors(df, publication_id_col='work_id',
 
     # Merge the combined authors back into the original DataFrame
     # and drop duplicates
-    df_combined = df.drop(columns=[author_name_col]).merge(combined,
-                                                           on=publication_id_col,
-                                                           how='left')\
-                                                            .drop_duplicates(publication_id_col)
+    df_combined = df.merge(combined,
+                            on=publication_id_col,
+                            how='left')\
+                            .drop_duplicates(publication_id_col)
 
     return df_combined
 
 def save_df_to_tsv(df):
     "Save DataFrame results to tsv"
-    date_str = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    date_str = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
     path = f"./data/cleaned_results_{date_str}.tsv"
     df.to_csv(path, sep='\t', index=False)
     print(f"DataFrame saved to {path}")
 
 def main():
-    url, dates = build_institution_works_url(ror=ROR,
-                                             from_date='2022-01-01', #FY23
-                                             to_date='2022-12-31')
+    url, dates = build_institution_works_url(ror=ROR
+                                            #  from_date='2022-01-01', #FY23
+                                            #  to_date='2022-12-31'
+                                             )
     publications = page_thru_all_pubs(url)
     pickle_path = pickle_results(publications, dates)
     df = works_to_df(pickle_path)
