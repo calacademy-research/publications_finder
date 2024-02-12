@@ -1,0 +1,6 @@
+#database_url: collectionsdb
+database_url: 127.0.0.1
+database_port: 3399
+database_password: 0b5aTlERkgMBs
+database_user: root
+database_name: publications

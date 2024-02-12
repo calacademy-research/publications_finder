@@ -3,7 +3,7 @@ import mysql.connector
 import yaml
 import traceback
 import time
-
+from pymysql.converters import escape_string
 
 class DBConnector(object):
 
@@ -12,12 +12,10 @@ class DBConnector(object):
         self.db_config = self.read_db_config()
 
     def read_db_config(self):
-        with open('./vm/vm_passwords.yml', 'r') as file:
+        with open('./db_connection.yml', 'r') as file:
             config = yaml.safe_load(file)
         return config
 
-    # def create_connection(self):
-    #     return sqlite3.connect('doi_database.db', timeout=30.0)
 
     def create_connection(self):
         return mysql.connector.connect(
@@ -50,6 +48,20 @@ class DBConnection(object):
         return cls.connection
 
     @classmethod
+    def log_sql(cls, query, stack_trace):
+        # for debugging, enable if there are issues.
+        # works with ./vm/sql_log_scan.sh
+        return
+        formatted_stack_trace = ''.join(stack_trace)
+        log_string = (
+            f"SQL Query: {query}\n"
+            "Stack Trace:\n"
+            f"{formatted_stack_trace}\n"
+            f"{'-' * 40}\n"
+        )
+        with open('./sql.log', 'a') as log_file:
+            log_file.write(log_string)
+    @classmethod
     def execute_query(cls, query, args=None):
         """
         Execute a SQL query with retry mechanism on deadlock.
@@ -67,9 +79,14 @@ class DBConnection(object):
                 cursor = connection.cursor()
                 if args is None:
                     cursor.execute(query)
+                    formatted_query = query
                 else:
                     cursor.execute(query, args)
+                    formatted_query = query
+                    for arg in args:
+                        formatted_query = formatted_query.replace('%s', f"'{escape_string(str(arg))}'", 1)
 
+                cls.log_sql(formatted_query, traceback.format_stack())
                 if query.strip().upper().startswith("SELECT"):
                     result = cursor.fetchall()
                     cursor.close()

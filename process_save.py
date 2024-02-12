@@ -10,9 +10,9 @@ import pickle
 import requests
 import pandas as pd
 
-
 # ROR id for California Academy of Sciences
 ROR = '02wb73912'
+
 
 def build_institution_works_url(ror=ROR,
                                 from_date=None,
@@ -41,11 +41,12 @@ def build_institution_works_url(ror=ROR,
 
     filter_param = f'filter={",".join(filters)}'
     mailto_param = f'&mailto={email}' if email else ''
-    url =  f'{endpoint}?{filter_param}{mailto_param}'
+    url = f'{endpoint}?{filter_param}{mailto_param}'
 
     return url, {'from_date': from_date, 'to_date': to_date}
 
-def page_thru_all_pubs (url_in):
+
+def page_thru_all_pubs(url_in):
     ''' Page through API results, which needs to happen when there > 25 results.
 
     Args: 
@@ -91,6 +92,7 @@ def page_thru_all_pubs (url_in):
     print(f'done. made {loop_index} api requests. collected {len(works)} works')
     return works
 
+
 def pickle_results(data, dates):
     ''' Pickle the API results to avoid calling again. 
 
@@ -122,6 +124,7 @@ def pickle_results(data, dates):
 
     return full_path
 
+
 def works_to_df(path):
     '''
     Loop through API output to construct a pandas DataFrame
@@ -143,7 +146,7 @@ def works_to_df(path):
                 author_id = author['id'] if author else None
                 author_orcid = author.get('orcid', -1) if author else None
                 author_name = author['display_name'] if author else None
-                author_raw_name = authorship['raw_author_name']if author else None
+                author_raw_name = authorship['raw_author_name'] if author else None
                 author_position = authorship['author_position']
                 for institution in authorship['institutions']:
                     if institution:
@@ -169,6 +172,7 @@ def works_to_df(path):
     df = pd.DataFrame(data)
     return df
 
+
 def clean_up_df(df):
     """
     Clean up result DataFrame from works_to_df(). 
@@ -184,6 +188,7 @@ def clean_up_df(df):
     """
     df_cas = df[df['institution_name'] == 'California Academy of Sciences']
     return combine_authors(df_cas)
+
 
 def combine_authors(df, publication_id_col='work_id',
                     author_name_col='author_raw_name',
@@ -202,17 +207,18 @@ def combine_authors(df, publication_id_col='work_id',
     """
     # Group by publication ID and combine author names by
     # concatenating the author names for each group into a single string, separated by commas.
-    combined = df.groupby(publication_id_col)[author_name_col].apply(lambda x:', '.join(x))\
-                                                            .reset_index(name=combined_authors_col)
+    combined = df.groupby(publication_id_col)[author_name_col].apply(lambda x: ', '.join(x)) \
+        .reset_index(name=combined_authors_col)
 
     # Merge the combined authors back into the original DataFrame
     # and drop duplicates
     df_combined = df.merge(combined,
-                            on=publication_id_col,
-                            how='left')\
-                            .drop_duplicates(publication_id_col)
+                           on=publication_id_col,
+                           how='left') \
+        .drop_duplicates(publication_id_col)
 
     return df_combined
+
 
 def save_df_to_tsv(df):
     "Save DataFrame results to tsv"
@@ -221,10 +227,11 @@ def save_df_to_tsv(df):
     df.to_csv(path, sep='\t', index=False)
     print(f"DataFrame saved to {path}")
 
+
 def main():
     url, dates = build_institution_works_url(ror=ROR
-                                            #  from_date='2022-01-01', #FY23
-                                            #  to_date='2022-12-31'
+                                             #  from_date='2022-01-01', #FY23
+                                             #  to_date='2022-12-31'
                                              )
     publications = page_thru_all_pubs(url)
     pickle_path = pickle_results(publications, dates)
@@ -233,6 +240,7 @@ def main():
     save_df_to_tsv(cleaned_df)
 
     print("Results processed and saved.")
+
 
 if __name__ == "__main__":
     main()
