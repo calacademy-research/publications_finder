@@ -10,30 +10,39 @@ class OpenAlexIngest:
     """Ingests data from API calls that have been restructured for sql insertion."""
     # we will keep this regardless
     def __init__(self, query_option):
-        # self.config = Config()
-        self.table = 'collab_pubs'
+        """
+        Initialize the class.
+
+        Parameters:
+        query_option (str): What to query by. The options are "by_affiliation" or "by_author", 
+        which will query the API either by affiliation or by author. 
+        """
+        # self.table is set by query_data().
+        # This is the sql table that records will be inserted into. 
+        self.table = None
+
         if query_option not in ["by_affiliation", "by_author"]:
             raise ValueError("query_option must be 'by_affiliation' or 'by_author'")
         else:
             self.data = self.query_data(query_option)
-        # self.data = OpenAlex.query_by_author()
 
         # Joe - create the table here.
         sql_create_table = f""" CREATE TABLE IF NOT EXISTS {self.table} (
-                                            work_id VARCHAR(255) NOT NULL PRIMARY KEY,
+                                            work_id VARCHAR(255) NOT NULL,
                                             work_doi TINYTEXT,
                                             work_title VARCHAR(1000),
                                             work_display_name VARCHAR(1000),
                                             work_publication_year INT,
                                             work_publication_date DATE,
-                                            author_id VARCHAR(40),
+                                            author_id VARCHAR(40) NOT NULL,
                                             author_orcid VARCHAR(40),
                                             author_name TINYTEXT,
                                             author_raw_name TINYTEXT,
                                             author_position VARCHAR(10),
-                                            institution_id TINYTEXT,
+                                            institution_id VARCHAR(255) NOT NULL,
                                             institution_name TINYTEXT,
-                                            institution_country_code TINYTEXT
+                                            institution_country_code TINYTEXT, 
+                                            PRIMARY KEY (work_id, author_id, institution_id)
                                             );
                                             """
         DBConnection.execute_query(sql_create_table)
@@ -42,23 +51,24 @@ class OpenAlexIngest:
         """assigns self.data based on the option passed to OpenAlexIngest"""
         open_alex = OpenAlex()
         if query_option == 'by_affiliation':
+            self.table = "collab_pubs"
             works = open_alex.query_by_affiliation()
             return works
         elif query_option == 'by_author':
-            pass
-            # works = OpenAlex.query_by_author()
-            # return works
-        else:
-            return None
+            self.table = 'cas_by_author_pubs'
+            works = OpenAlex.query_by_author()
+            return works
+    
 
     def insert_works(self):
         '''Insert works into table. 
-        
+    
         Args:
         works: list of dictionaries returned from query_data()
         '''
+        # Use insert ignore to skip records where an author's affiliation is repeated for the same publication.
         sql = f"""
-                INSERT INTO {self.table}
+                INSERT IGNORE INTO {self.table}
                 (work_id, work_doi, work_title, work_display_name, work_publication_year,
                 work_publication_date, author_id, author_orcid, author_name, author_raw_name,
                 author_position, institution_id, institution_name, institution_country_code)
