@@ -56,7 +56,7 @@ class OpenAlexIngest:
             return works
         elif query_option == 'by_author':
             self.table = 'cas_by_author_pubs'
-            works = OpenAlex.query_by_author()
+            # works = OpenAlex.query_by_author()
             return works
     
 

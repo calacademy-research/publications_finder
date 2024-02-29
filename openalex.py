@@ -22,14 +22,14 @@ class OpenAlex:
 
     def _build_institution_works_url(self,
                                     ror=None,
-                                    from_date=None, # add these to config.ini?
+                                    from_date=None, # add dates to config.ini?
                                     to_date=None,
-                                    email=None):
+                                    email=None): # add email to config.ini?
         ''' Build URL for API call to retrieve all works where the provided 
         institution ROR is in at least one of the affiliations for a work. 
 
         Args:
-        ror: The ROR id for the institution.
+        ror: The ROR id for the institution. Set in config.ini
         from_date: String. Format: 'YYYY-MM-DD'. Will retrieve all works on or after this date.
         to_date: String. Format: 'YYYY-MM-DD'. Will retrieve all works up to or on this date.
         email: Provide email address in order to get into the polite pool for API requests
@@ -53,6 +53,105 @@ class OpenAlex:
 
         return url
 
+    def retrieve_author_alexid(self,
+                                author_first_name = None, # add to config.ini?
+                                author_last_name = None, # add to config.ini?
+                                email=None): # add email to config.ini?):
+        ''' Retrieve unique alexid for an author by first name and last. 
+        Intended for use only when an author's ORCID or alexid aren't already known.
+        You can only search for works for an author by their unique id's, not by their names
+        because of the ambiguity that causes.  
+
+        Args:
+        author_first_name (str): Author's first name.
+        author_last_name (str): Author's last name.
+
+        Returns:
+        Author's alexid and orcid if they are available through the api. 
+        '''
+        endpoint = 'https://api.openalex.org/authors'
+
+        author_full_name = []
+
+        if author_first_name:
+            author_full_name.append(author_first_name)
+
+        if author_last_name: 
+            author_full_name.append(author_last_name)
+
+        filter_param = f'filter=display_name.search:{" ".join(author_full_name)}'
+        mailto_param = f'&mailto={email}' if email else ''
+        url = f'{endpoint}?{filter_param}{mailto_param}'
+        print(url)
+
+        response = requests.get(url)
+        author_results = {}
+        if response.status_code == 200:
+            page_with_results = response.json()
+            results = page_with_results.get('results',[])
+            if results:
+                for result in results:
+                    author_id = result['id']
+                    author_orcid = result['orcid']
+                    institutions = []
+                    if result['affiliations']:
+                        for affiliation in result['affiliations']:
+                            institution_name = affiliation['institution']['display_name']
+                            institutions.append(institution_name)
+                    author_display_name = result.get('display_name', '')
+        
+                    author_results['author_searched_name'] = " ".join(author_full_name)
+                    author_results['author_display_name'] = author_display_name
+                    author_results['author_id'] = author_id
+                    author_results['author_orcid'] = author_orcid or 'not available'
+                    author_results['institution_names'] = ", ".join(institutions) if institutions else 'not available'
+        
+            
+        # print(author_results)
+        print("Searched Author Name:", author_results['author_searched_name'])
+        print("Displayed Author Name:", author_results['author_display_name'])
+        print("Author AlexID:", author_results['author_id'])
+        print("Author ORCID:", author_results['author_orcid'])
+        print("Author Affiliations:", author_results['institution_names'])
+
+        # return url
+
+        
+
+    def _build_author_works_url(self,
+                                author_orcid = None, # add to config.ini?
+                                from_date=None, # add dates to config.ini?
+                                to_date=None,
+                                email=None): # add email to config.ini?
+        ''' Build URL for API call to retrieve all works for the provided author details.  
+
+        Args:
+        author_first_name (str): Author's first name.
+        author_last_name (str): Author's last name.
+        from_date (str): Format: 'YYYY-MM-DD'. Will retrieve all works on or after this date.
+        to_date (str): Format: 'YYYY-MM-DD'. Will retrieve all works up to or on this date.
+        email (str): Provide email address in order to get into the polite pool for API requests
+
+        Returns:
+        Complete URL for API call
+        '''
+        endpoint = 'https://api.openalex.org/works'
+        
+        filters = []
+        if author_orcid: 
+            filters.append(f'{author_orcid}')
+        if from_date:
+            filters.append(f'from_publication_date:{from_date}')
+        if to_date:
+            filters.append(f'to_publication_date:{to_date}')
+
+        filter_param = f'filter={",".join(filters)}'
+        mailto_param = f'&mailto={email}' if email else ''
+        url = f'{endpoint}?{filter_param}{mailto_param}'
+        print(url)
+
+        return url
+    
     @staticmethod
     def _page_thru_all_pubs(url_in):
         ''' Page through API results, which needs to happen when there > 25 results.
@@ -166,3 +265,9 @@ class OpenAlex:
         """to be completed"""
     # need _build_author_url
     # add args to search by name + orcid
+              
+api = OpenAlex()
+# author_url = api._build_author_works_url('joseph', 'russack', 'mabarca@calacademy.org')
+# print(author_url)
+
+api.retrieve_author_alexid('joseph', 'russack')
