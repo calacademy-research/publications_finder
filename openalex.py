@@ -53,7 +53,7 @@ class OpenAlex:
 
         return url
 
-    def retrieve_author_alexid(self,
+    def retrieve_author_id(self,
                                 author_first_name = None, # add to config.ini?
                                 author_last_name = None, # add to config.ini?
                                 email=None): # add email to config.ini?):
@@ -67,7 +67,8 @@ class OpenAlex:
         author_last_name (str): Author's last name.
 
         Returns:
-        Author's alexid and orcid if they are available through the api. 
+        Nothing. Just prints found alexids and orcids for the searched name.
+        Have to pick which ids to select for search by orcid in build_author_words().  
         '''
         endpoint = 'https://api.openalex.org/authors'
 
@@ -76,7 +77,7 @@ class OpenAlex:
         if author_first_name:
             author_full_name.append(author_first_name)
 
-        if author_last_name: 
+        if author_last_name:
             author_full_name.append(author_last_name)
 
         filter_param = f'filter=display_name.search:{" ".join(author_full_name)}'
@@ -113,10 +114,10 @@ class OpenAlex:
         print("Author AlexID:", author_results['author_id'])
         print("Author ORCID:", author_results['author_orcid'])
         print("Author Affiliations:", author_results['institution_names'])
+        # Potentially use affiliations to filter for CAS only authors and then return that ORCID?
+        # Might cause issues if CAS not in current affiliations for an author though. 
 
-        # return url
-
-        
+        return 1
 
     def _build_author_works_url(self,
                                 author_orcid = None, # add to config.ini?
@@ -126,8 +127,10 @@ class OpenAlex:
         ''' Build URL for API call to retrieve all works for the provided author details.  
 
         Args:
-        author_first_name (str): Author's first name.
-        author_last_name (str): Author's last name.
+        author_orcid (str or list): The single ORCID for the author to search on, or a list of
+                                    authors to search on. note: you cannot query works on openalex
+                                    with just author name strings (bc of name ambiguity).
+                                    Lookup ORCIDS for authors using retrieve_author_id(). 
         from_date (str): Format: 'YYYY-MM-DD'. Will retrieve all works on or after this date.
         to_date (str): Format: 'YYYY-MM-DD'. Will retrieve all works up to or on this date.
         email (str): Provide email address in order to get into the polite pool for API requests
@@ -137,6 +140,10 @@ class OpenAlex:
         '''
         endpoint = 'https://api.openalex.org/works'
         
+        # https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
+        # https://blog.ourresearch.org/fetch-multiple-dois-in-one-openalex-api-request/
+        # can pipe together up to 100 ORCIDS in one call. use per-page=100
+
         filters = []
         if author_orcid: 
             filters.append(f'{author_orcid}')
@@ -270,4 +277,4 @@ api = OpenAlex()
 # author_url = api._build_author_works_url('joseph', 'russack', 'mabarca@calacademy.org')
 # print(author_url)
 
-api.retrieve_author_alexid('joseph', 'russack')
+api.retrieve_author_id('joseph', 'russack')
