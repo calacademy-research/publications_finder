@@ -119,24 +119,32 @@ class OpenAlex:
 
         return 1
 
+    @staticmethod
+    def chunk_list(lst, chunk_size):
+        """Yield successive chunks from a list."""
+        for i in range(0, len(lst), chunk_size):
+            yield lst[i:i + chunk_size]
+
     def _build_author_works_url(self,
                                 author_orcid = None, # add to config.ini?
                                 from_date=None, # add dates to config.ini?
                                 to_date=None,
-                                email=None): # add email to config.ini?
-        ''' Build URL for API call to retrieve all works for the provided author details.  
+                                email=None, # add to config.ini?
+                                chunk_size=80): # add to config.ini?
+        ''' Build URLS for API calls to retrieve all works for the provided author details.  
 
         Args:
-        author_orcid (str or list): The single ORCID for the author to search on, or a list of
-                                    authors to search on. note: you cannot query works on openalex
+        author_orcid (str or list): Either the single ORCID for the author to search on, or a list of
+                                    author orcids to search on. note: you cannot query works on openalex
                                     with just author name strings (bc of name ambiguity).
                                     Lookup ORCIDS for authors using retrieve_author_id(). 
         from_date (str): Format: 'YYYY-MM-DD'. Will retrieve all works on or after this date.
         to_date (str): Format: 'YYYY-MM-DD'. Will retrieve all works up to or on this date.
         email (str): Provide email address in order to get into the polite pool for API requests
-
+        chunk_size (int): The number of orcids to batch together into one request. The max is 100.
+        
         Returns:
-        Complete URL for API call
+        List of complete URLS for API calls.
         '''
         endpoint = 'https://api.openalex.org/works'
         
@@ -144,20 +152,21 @@ class OpenAlex:
         # https://blog.ourresearch.org/fetch-multiple-dois-in-one-openalex-api-request/
         # can pipe together up to 100 ORCIDS in one call. use per-page=100
 
-        filters = []
-        if author_orcid: 
-            filters.append(f'{author_orcid}')
-        if from_date:
-            filters.append(f'from_publication_date:{from_date}')
-        if to_date:
-            filters.append(f'to_publication_date:{to_date}')
+        urls = []
 
-        filter_param = f'filter={",".join(filters)}'
-        mailto_param = f'&mailto={email}' if email else ''
-        url = f'{endpoint}?{filter_param}{mailto_param}'
-        print(url)
+        for orcid_chunk in self.chunk_list(author_orcid, chunk_size):
+            filters = [
+                f'authorships.author.orcid:{"|".join(orcid_chunk)\
+                                            if isinstance(author_orcid, list) else author_orcid}',
+                *(f'from_publication_date:{from_date}' if from_date else []),
+                *(f'to_publication_date:{to_date}' if to_date else [])
+            ]
+            filter_param = f'filter={",".join(filters)}'
+            mailto_param = f'&mailto={email}' if email else ''
+            url = f'{endpoint}?{filter_param}{mailto_param}&per-page={chunk_size}'
+            urls.append(url)
 
-        return url
+        return urls
     
     @staticmethod
     def _page_thru_all_pubs(url_in):
@@ -268,7 +277,7 @@ class OpenAlex:
         return structured_data
 
 
-    def query_by_author(self):
+    def query_by_author(self, name, orcid):
         """to be completed"""
     # need _build_author_url
     # add args to search by name + orcid
