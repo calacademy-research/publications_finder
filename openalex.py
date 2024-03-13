@@ -1,6 +1,7 @@
 """Class for getting API data and structuring it for ingestion."""
 import requests
 from config import Config
+from orcid_list import orcid_list
 
 
 class OpenAlex:
@@ -100,14 +101,11 @@ class OpenAlex:
                             institution_name = affiliation['institution']['display_name']
                             institutions.append(institution_name)
                     author_display_name = result.get('display_name', '')
-        
                     author_results['author_searched_name'] = " ".join(author_full_name)
                     author_results['author_display_name'] = author_display_name
                     author_results['author_id'] = author_id
                     author_results['author_orcid'] = author_orcid or 'not available'
                     author_results['institution_names'] = ", ".join(institutions) if institutions else 'not available'
-        
-            
         # print(author_results)
         print("Searched Author Name:", author_results['author_searched_name'])
         print("Displayed Author Name:", author_results['author_display_name'])
@@ -115,8 +113,7 @@ class OpenAlex:
         print("Author ORCID:", author_results['author_orcid'])
         print("Author Affiliations:", author_results['institution_names'])
         # Potentially use affiliations to filter for CAS only authors and then return that ORCID?
-        # Might cause issues if CAS not in current affiliations for an author though. 
-
+        # Might cause issues if CAS not in current affiliations for an author though.
         return 1
 
     @staticmethod
@@ -130,24 +127,26 @@ class OpenAlex:
                                 from_date=None, # add dates to config.ini?
                                 to_date=None,
                                 email=None, # add to config.ini?
-                                chunk_size=80): # add to config.ini?
+                                chunk_size=30): # add to config.ini?
         ''' Build URLS for API calls to retrieve all works for the provided author details.  
 
         Args:
-        author_orcid (str or list): Either the single ORCID for the author to search on, or a list of
-                                    author orcids to search on. note: you cannot query works on openalex
+        author_orcid (str or list): Either a single ORCID for the author to search on, or a list of
+                                    author orcids to search on. note: you can't query works on openalex
                                     with just author name strings (bc of name ambiguity).
                                     Lookup ORCIDS for authors using retrieve_author_id(). 
         from_date (str): Format: 'YYYY-MM-DD'. Will retrieve all works on or after this date.
         to_date (str): Format: 'YYYY-MM-DD'. Will retrieve all works up to or on this date.
         email (str): Provide email address in order to get into the polite pool for API requests
-        chunk_size (int): The number of orcids to batch together into one request. The max is 100.
-        
+        chunk_size (int): The number of orcids to batch together into one request. The max per request is 100,
+                          but the url is too long for the server with 100 orcids + the select parameters (max=4094),
+                          so changed the default to 30, which seems to be the smallest number that works.
+                          Could also experiment with getting rid of the select parameters later.
+                          
         Returns:
         List of complete URLS for API calls.
         '''
         endpoint = 'https://api.openalex.org/works'
-        
         # https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
         # https://blog.ourresearch.org/fetch-multiple-dois-in-one-openalex-api-request/
         # can pipe together up to 100 ORCIDS in one call. use per-page=100
@@ -156,8 +155,7 @@ class OpenAlex:
 
         for orcid_chunk in self.chunk_list(author_orcid, chunk_size):
             filters = [
-                f'authorships.author.orcid:{"|".join(orcid_chunk)\
-                                            if isinstance(author_orcid, list) else author_orcid}',
+                f'authorships.author.orcid:{"|".join(orcid_chunk) if isinstance(author_orcid, list) else author_orcid}',
                 *(f'from_publication_date:{from_date}' if from_date else []),
                 *(f'to_publication_date:{to_date}' if to_date else [])
             ]
@@ -180,6 +178,7 @@ class OpenAlex:
         '''
         cursor = '*'
 
+        # modify these to retrieve other fields as needed.
         select = ",".join((
             'id',
             'ids',
@@ -277,13 +276,21 @@ class OpenAlex:
         return structured_data
 
 
-    def query_by_author(self, name, orcid):
+    def query_by_author(self):
         """to be completed"""
-    # need _build_author_url
-    # add args to search by name + orcid
-              
+        urls = self._build_author_works_url(orcid_list)
+        # assembling all works from multiples urls:
+        all_works = []
+        for i, url in enumerate(urls):
+            print(f"Working on url {i+1} out of {len(urls)}")
+            works = self._page_thru_all_pubs(url)
+            all_works.extend(works)
+            print(f'Total works collected from all URLs: {len(all_works)}')
+        return all_works
+          
 api = OpenAlex()
 # author_url = api._build_author_works_url('joseph', 'russack', 'mabarca@calacademy.org')
 # print(author_url)
 
 api.retrieve_author_id('joseph', 'russack')
+# api.query_by_author()

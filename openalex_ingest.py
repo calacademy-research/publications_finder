@@ -18,7 +18,7 @@ class OpenAlexIngest:
         which will query the API either by affiliation or by author. 
         """
         # self.table is set by query_data().
-        # This is the sql table that records will be inserted into. 
+        # This is the sql table that records will be inserted into.
         self.table = None
 
         if query_option not in ["by_affiliation", "by_author"]:
@@ -49,6 +49,9 @@ class OpenAlexIngest:
 
     def query_data(self, query_option):
         """assigns self.data based on the option passed to OpenAlexIngest"""
+        # I think I can collapse into one self.data = just one table instead of 2 different ones
+        # and then separate records based on CAS only with a sql query.
+        # the fields for author ended up being the same.
         open_alex = OpenAlex()
         if query_option == 'by_affiliation':
             self.table = "collab_pubs"
@@ -56,9 +59,8 @@ class OpenAlexIngest:
             return works
         elif query_option == 'by_author':
             self.table = 'cas_by_author_pubs'
-            # works = OpenAlex.query_by_author()
+            works = open_alex.query_by_author()
             return works
-    
 
     def insert_works(self):
         '''Insert works into table. 
@@ -66,7 +68,8 @@ class OpenAlexIngest:
         Args:
         works: list of dictionaries returned from query_data()
         '''
-        # Use insert ignore to skip records where an author's affiliation is repeated for the same publication.
+          # Use insert ignore to skip records where an author's affiliation
+            # is repeated for the same publication.
         sql = f"""
                 INSERT IGNORE INTO {self.table}
                 (work_id, work_doi, work_title, work_display_name, work_publication_year,
