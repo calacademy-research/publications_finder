@@ -20,6 +20,7 @@ class OpenAlex:
     def __init__(self):
         self.config = Config()
         self.ror = self.config.get_string("alex_param", "ROR").strip("'")
+        self.email = self.config.get_string("alex_param", 'email')
 
     def _build_institution_works_url(self,
                                     ror=None,
@@ -39,6 +40,7 @@ class OpenAlex:
         Complete URL for API call
         '''
         ror = ror or self.ror
+        email = email or self.email
         endpoint = 'https://api.openalex.org/works'
         filters = [f'institutions.ror:{ror}']
 
@@ -50,7 +52,7 @@ class OpenAlex:
         filter_param = f'filter={",".join(filters)}'
         mailto_param = f'&mailto={email}' if email else ''
         url = f'{endpoint}?{filter_param}{mailto_param}'
-        print(url)
+        print(f"Url for API call: {url}")
 
         return url
 
@@ -265,19 +267,25 @@ class OpenAlex:
 
     def query_by_affiliation(self):
         """
-        Return structured data to insert into MySQL table in openalex_ingest.py
+        Return structured data from affiliation api query to insert into
+        MySQL table in openalex_ingest.py.
         Uses the internal functions _build_institution_works_url() and 
-        _structure_works()
-        
+        _structure_works().
         """
-        url = self._build_institution_works_url(email='mabarca@calacademy.org')
+        url = self._build_institution_works_url()
         works = self._page_thru_all_pubs(url)
+        print("Structuring records for ingestion...")
         structured_data = self._structure_works(works)
         return structured_data
 
 
     def query_by_author(self):
-        """to be completed"""
+        """
+        Return structured data from author orcid api query
+        to insert into MySQL table in openalex_ingest.py.
+        Uses the internal functions _build_institution_works_url() and 
+        _structure_works()
+        """
         urls = self._build_author_works_url(orcid_list)
         # assembling all works from multiples urls:
         all_works = []
@@ -285,12 +293,14 @@ class OpenAlex:
             print(f"Working on url {i+1} out of {len(urls)}")
             works = self._page_thru_all_pubs(url)
             all_works.extend(works)
-            print(f'Total works collected from all URLs: {len(all_works)}')
-        return all_works
+        print(f'Total works collected from all URLs: {len(all_works)}')
+        print("Structuring records for ingestion...")
+        structured_data = self._structure_works(all_works)
+        return structured_data
           
-api = OpenAlex()
+# api = OpenAlex()
 # author_url = api._build_author_works_url('joseph', 'russack', 'mabarca@calacademy.org')
 # print(author_url)
 
-api.retrieve_author_id('joseph', 'russack')
+# api.retrieve_author_id('joseph', 'russack')
 # api.query_by_author()

@@ -14,20 +14,20 @@ class OpenAlexIngest:
         Initialize the class.
 
         Parameters:
-        query_option (str): What to query by. The options are "by_affiliation" or "by_author", 
-        which will query the API either by affiliation or by author. 
+        query_option (str): What to query by. The options are "by_affiliation" or "by_author_orcid", 
+        which will query the API either by affiliation or by author orcid. 
         """
         # self.table is set by query_data().
         # This is the sql table that records will be inserted into.
-        self.table = None
+        # self.table = None
 
-        if query_option not in ["by_affiliation", "by_author"]:
-            raise ValueError("query_option must be 'by_affiliation' or 'by_author'")
+        if query_option not in ["by_affiliation", "by_author_orcid"]:
+            raise ValueError("query_option must be 'by_affiliation' or 'by_author_orcid'")
         else:
             self.data = self.query_data(query_option)
 
         # Joe - create the table here.
-        sql_create_table = f""" CREATE TABLE IF NOT EXISTS {self.table} (
+        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works (
                                             work_id VARCHAR(255) NOT NULL,
                                             work_doi TINYTEXT,
                                             work_title VARCHAR(1000),
@@ -48,30 +48,25 @@ class OpenAlexIngest:
         DBConnection.execute_query(sql_create_table)
 
     def query_data(self, query_option):
-        """assigns self.data based on the option passed to OpenAlexIngest"""
+        """Returns works object based on the option passed to OpenAlexIngest"""
         # I think I can collapse into one self.data = just one table instead of 2 different ones
         # and then separate records based on CAS only with a sql query.
         # the fields for author ended up being the same.
         open_alex = OpenAlex()
         if query_option == 'by_affiliation':
-            self.table = "collab_pubs"
+            # self.table = "collab_pubs"
             works = open_alex.query_by_affiliation()
             return works
-        elif query_option == 'by_author':
-            self.table = 'cas_by_author_pubs'
-            works = open_alex.query_by_author()
-            return works
+        # self.table = 'cas_by_author_pubs'
+        works = open_alex.query_by_author()
+        return works
 
     def insert_works(self):
-        '''Insert works into table. 
-    
-        Args:
-        works: list of dictionaries returned from query_data()
-        '''
+        '''Insert works into table by iterating over self.data.'''
           # Use insert ignore to skip records where an author's affiliation
-            # is repeated for the same publication.
-        sql = f"""
-                INSERT IGNORE INTO {self.table}
+            # is repeated for the same publication. This info is redundant. 
+        sql = """
+                INSERT IGNORE INTO comprehensive_global_works
                 (work_id, work_doi, work_title, work_display_name, work_publication_year,
                 work_publication_date, author_id, author_orcid, author_name, author_raw_name,
                 author_position, institution_id, institution_name, institution_country_code)
