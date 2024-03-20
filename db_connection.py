@@ -1,4 +1,5 @@
 import logging
+import re
 import mysql.connector
 import yaml
 import traceback
@@ -73,6 +74,9 @@ class DBConnection(object):
         max_retries = 3
         retry_delay = 60  # seconds
 
+        # Regex to match queries that are expected to return a result set.
+        returns_result_pattern = re.compile(r"^\s*(WITH|SELECT)", re.IGNORECASE)
+
         for attempt in range(max_retries):
             connection = cls.get_connection()
             try:
@@ -87,7 +91,10 @@ class DBConnection(object):
                         formatted_query = formatted_query.replace('%s', f"'{escape_string(str(arg))}'", 1)
 
                 cls.log_sql(formatted_query, traceback.format_stack())
-                if query.strip().upper().startswith("SELECT"):
+                # Check if query is expected to return a result. 
+                # Had to make this more flexible than just matching SELECT at the beginning of query
+                # to also handle CTEs.
+                if returns_result_pattern.match(query):
                     result = cursor.fetchall()
                     cursor.close()
                     return result
