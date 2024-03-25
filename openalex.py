@@ -128,12 +128,12 @@ class OpenAlex:
                                 author_orcid = None, # add to config.ini?
                                 from_date=None, # add dates to config.ini?
                                 to_date=None,
-                                email=None, # add to config.ini?
+                                email=None,
                                 chunk_size=30): # add to config.ini?
         ''' Build URLS for API calls to retrieve all works for the provided author details.  
 
         Args:
-        author_orcid (str or list): Either a single ORCID for the author to search on, or a list of
+        author_orcid (list): Either a single ORCID (as a list of length 1) for the author to search on, or a list of
                                     author orcids to search on. note: you can't query works on openalex
                                     with just author name strings (bc of name ambiguity).
                                     Lookup ORCIDS for authors using retrieve_author_id(). 
@@ -152,7 +152,7 @@ class OpenAlex:
         # https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
         # https://blog.ourresearch.org/fetch-multiple-dois-in-one-openalex-api-request/
         # can pipe together up to 100 ORCIDS in one call. use per-page=100
-
+        email = email or self.email
         urls = []
 
         for orcid_chunk in self.chunk_list(author_orcid, chunk_size):
@@ -286,6 +286,7 @@ class OpenAlex:
         Uses the internal functions _build_institution_works_url() and 
         _structure_works()
         """
+        # orcid_list comes from orcid_list.py
         urls = self._build_author_works_url(orcid_list)
         # assembling all works from multiples urls:
         all_works = []
