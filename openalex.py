@@ -1,7 +1,7 @@
 """Class for getting API data and structuring it for ingestion."""
 import requests
 from config import Config
-from orcid_list import orcid_list
+from orcid_list import cas_orcid_list
 
 
 class OpenAlex:
@@ -125,7 +125,7 @@ class OpenAlex:
             yield lst[i:i + chunk_size]
 
     def _build_author_works_url(self,
-                                author_orcid = None, # add to config.ini?
+                                author_orcid = None,
                                 from_date=None, # add dates to config.ini?
                                 to_date=None,
                                 email=None,
@@ -230,7 +230,7 @@ class OpenAlex:
         works: json output of API call
 
         Returns:
-        pandas DataFrame of results.
+        List of dictionaries where each entry is a work by an author at certain institution.
         '''
         data = []
         for work in works:
@@ -242,27 +242,31 @@ class OpenAlex:
                     author_name = author['display_name'] if author else None
                     author_raw_name = authorship['raw_author_name'] if author else None
                     author_position = authorship['author_position']
-                    for institution in authorship['institutions']:
-                        if institution:
+                    if authorship['institutions']:
+                        for institution in authorship['institutions']:
                             institution_id = institution['id']
-                            institution_name = institution['display_name']
+                            institution_name = institution['display_name'] 
                             institution_country_code = institution['country_code']
-                            data.append({
-                                'work_id': work['id'],
-                                'work_doi': work['ids'].get('doi', -1),
-                                'work_title': work['title'],
-                                'work_display_name': work['display_name'],
-                                'work_publication_year': work['publication_year'],
-                                'work_publication_date': work['publication_date'],
-                                'author_id': author_id,
-                                'author_orcid': author_orcid,
-                                'author_name': author_name,
-                                'author_raw_name': author_raw_name,
-                                'author_position': author_position,
-                                'institution_id': institution_id,
-                                'institution_name': institution_name,
-                                'institution_country_code': institution_country_code,
-                            })
+                    else:
+                        institution_id = "Not provided in metadata from publication source"
+                        institution_name = "Not provided in metadata from publication source"
+                        institution_country_code = "Not provided in metadata from publication source"
+                        data.append({
+                            'work_id': work['id'],
+                            'work_doi': work['ids'].get('doi', -1),
+                            'work_title': work['title'],
+                            'work_display_name': work['display_name'],
+                            'work_publication_year': work['publication_year'],
+                            'work_publication_date': work['publication_date'],
+                            'author_id': author_id,
+                            'author_orcid': author_orcid,
+                            'author_name': author_name,
+                            'author_raw_name': author_raw_name,
+                            'author_position': author_position,
+                            'institution_id': institution_id,
+                            'institution_name': institution_name,
+                            'institution_country_code': institution_country_code,
+                        })
         return data
 
     def query_by_affiliation(self):
@@ -279,21 +283,35 @@ class OpenAlex:
         return structured_data
 
 
-    def query_by_author(self):
+    def query_by_author(self, orcid=None):
         """
         Return structured data from author orcid api query
         to insert into MySQL table in openalex_ingest.py.
         Uses the internal functions _build_institution_works_url() and 
         _structure_works()
+
+        Args:
+        orcid (list): Either a single orcid (as list of length 1) or list of orcids to query by.
+                The default is None, which triggers cas_orcid_list,
+                which represents all orcids associated with CAS researchers. 
         """
-        # orcid_list comes from orcid_list.py
-        urls = self._build_author_works_url(orcid_list)
+        # cas_orcid_list comes from orcid_list.py
+        if orcid is None:
+            orcid = cas_orcid_list
+        urls = self._build_author_works_url(orcid)
+        print(urls)
         # assembling all works from multiples urls:
         all_works = []
+        print('start:')
+        print(all_works)
         for i, url in enumerate(urls):
             print(f"Working on url {i+1} out of {len(urls)}")
             works = self._page_thru_all_pubs(url)
+            print('works1:')
+            print(works)
             all_works.extend(works)
+            print('allworks1:')
+            print(all_works)
         print(f'Total works collected from all URLs: {len(all_works)}')
         print("Structuring records for ingestion...")
         structured_data = self._structure_works(all_works)
