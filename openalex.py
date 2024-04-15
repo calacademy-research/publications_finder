@@ -196,6 +196,7 @@ class OpenAlex:
             'is_paratext',
             'updated_date',
             'created_date',
+            'sustainable_development_goals'
         ))
 
         # loop through pages
@@ -241,7 +242,7 @@ class OpenAlex:
                     author_orcid = author.get('orcid', -1) if author else None
                     author_name = author['display_name'] if author else None
                     author_raw_name = authorship['raw_author_name'] if author else None
-                    author_position = authorship['author_position']
+                    # author_position = authorship['author_position']
                     if authorship['institutions']:
                         for institution in authorship['institutions']:
                             institution_id = institution['id']
@@ -256,16 +257,19 @@ class OpenAlex:
                             'work_doi': work['ids'].get('doi', -1),
                             'work_title': work['title'],
                             'work_display_name': work['display_name'],
+                            'work_publisher': work['primary_location']['source'].get('host_organization_name', -1),
+                            'work_journal': work['primary_location']['source'].get('display_name', -1),
                             'work_publication_year': work['publication_year'],
                             'work_publication_date': work['publication_date'],
+                            'work_sustainable_dev_goal': work['sustainable_development_goals'].get('display_name', -1),
                             'author_id': author_id,
                             'author_orcid': author_orcid,
                             'author_name': author_name,
                             'author_raw_name': author_raw_name,
-                            'author_position': author_position,
+                            # 'author_position': author_position,
                             'institution_id': institution_id,
                             'institution_name': institution_name,
-                            'institution_country_code': institution_country_code,
+                            'institution_country_code': institution_country_code
                         })
         return data
 

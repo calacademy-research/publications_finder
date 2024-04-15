@@ -27,18 +27,20 @@ class OpenAlexIngest:
             self.data = self.query_data(query_option)
 
         # Joe - create the table here.
-        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works (
+        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works_v2 (
                                             work_id VARCHAR(255) NOT NULL,
                                             work_doi TINYTEXT,
                                             work_title VARCHAR(1000),
                                             work_display_name VARCHAR(1000),
+                                            work_publisher VARCHAR(1000),
+                                            work_journal VARCHAR(1000),
                                             work_publication_year INT,
                                             work_publication_date DATE,
+                                            work_sustainable_dev_goal VARCHAR(1000),
                                             author_id VARCHAR(40) NOT NULL,
                                             author_orcid VARCHAR(40),
                                             author_name TINYTEXT,
                                             author_raw_name TINYTEXT,
-                                            author_position VARCHAR(10),
                                             institution_id VARCHAR(255) NOT NULL,
                                             institution_name TINYTEXT,
                                             institution_country_code TINYTEXT, 
@@ -66,13 +68,20 @@ class OpenAlexIngest:
           # Use insert ignore to skip records where an author's affiliation
             # is repeated for the same publication. This info is redundant. 
         sql = """
-                INSERT IGNORE INTO comprehensive_global_works
-                (work_id, work_doi, work_title, work_display_name, work_publication_year,
-                work_publication_date, author_id, author_orcid, author_name, author_raw_name,
-                author_position, institution_id, institution_name, institution_country_code)
+                INSERT IGNORE INTO comprehensive_global_works_v2
+                (work_id, work_doi,
+                work_title, work_display_name, work_publisher, work_journal,
+                work_publication_year, work_publication_date, work_sustainable_dev_goal,
+                author_id, author_orcid, author_name, author_raw_name,
+                institution_id, institution_name, institution_country_code)
                 VALUES
-                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (%s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s)
         """
+        # 15 fields
         try:
             for item in self.data:
                 DBConnection.execute_query(sql, (
@@ -80,13 +89,16 @@ class OpenAlexIngest:
                     item['work_doi'],
                     item['work_title'],
                     item['work_display_name'],
+                    item['work_publisher'],
+                    item['work_journal'],
                     item['work_publication_year'],
                     item['work_publication_date'],
+                    item['work_sustainable_dev_goal'],
                     item['author_id'],
                     item['author_orcid'],
                     item['author_name'],
                     item['author_raw_name'],
-                    item['author_position'],
+                    # item['author_position'],
                     item['institution_id'],
                     item['institution_name'],
                     item['institution_country_code']
