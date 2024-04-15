@@ -24,6 +24,9 @@ list of journals we are pubnlising in for a given year or year range
 ratio/l;ist of open vs closed journals
 
 send out emails on a <interval to be determined> containting.. (stuff fromt the above?)
+ - potentially this is a bad idea; people will always want to edit. Maybe we auto-push to quarterly
+ - and annual sheets that people can edit. Create a workflow where people do a google form to add thier 
+   work? or just have them splat it into the sheet? TBD, good times.
 
 
 
