@@ -15,20 +15,30 @@ class Crossref(Utils):
     def __init__(self):
         super().__init__()
         self.crossref_url = f'https://api.crossref.org'
-        self.query_url = self.crossref_url + '/works?query'
-        self.author_url = self.query_url + '.author='
+        # self.query_url = self.crossref_url + '/works?query'
+        self.filter_url = self.crossref_url + '/works?filter=orcid:'
         self.headers = {
-            'User-Agent': 'development; mailto:jrussack@calacademy.org',
+            'User-Agent': 'development; mailto:mabarca@calacademy.org',
         }
 
-    def author_search(self, author):
-        url = self.author_url + author.replace(" ", "+")
+    def author_orcid_search(self, author_orcid):
+        """
+        Queries the CrossRef API by author orcid
+
+        Args:
+        author_orcid (list): list of author orcids
+
+        Returns:
+
+
+        """
+        url = self.filter_url + author_orcid
         logging.info(f"Querying: {url}")
         total_results = 0
         done = False
         total_items_processed = 0
         cursor = "*"
-        logging.info(f"Searching author:{author}")
+        logging.info(f"Searching author:{author_orcid}")
 
         while not done:
             try:
@@ -45,16 +55,17 @@ class Crossref(Utils):
                 logging.info(f"Retries exceeded: {rex}, aborting.")
                 return
 
-    def _download_chunk(self, url, cursor, retries=0):
+    def _download_chunk(self, url, retries=0):
         max_retries = 3
-        safe_cursor = urllib.parse.quote(cursor, safe="")
+        safe_cursor = urllib.parse.quote('*', safe="")
+        final_url = f"{url}&cursor={safe_cursor}"
         try:
-            results = self._get_url_(url + safe_cursor, self.headers)
+            results = self._get_url_(final_url, self.headers, decode_json=True)
         except (ConnectionError, requests.exceptions.ConnectionError) as e:
             retries += 1
-            return self._handle_connection_error(retries, max_retries, url, cursor, e)
+            return self._handle_connection_error(retries, max_retries, url, e)
 
-        logging.info(f"Querying: {url + safe_cursor}")
+        logging.info(f"Querying: {final_url}")
         message = results['message']
         items = message['items']
         total_results = message['total-results']
@@ -66,8 +77,7 @@ class Crossref(Utils):
             title = item['title']
             print(f"title: {title}")
             for author in item['author']:
-                full_name = f"{author['given']} {author['family']}"
-                print(" " + full_name)
+                print(author)
             # Process item here.
 
 
@@ -101,3 +111,8 @@ class Crossref(Utils):
         if retries >= max_retries:
             raise RetriesExceededException(f"Retried {retries} times, aborting.")
         return self._download_chunk(url, cursor, retries)
+
+
+logging.basicConfig(level=logging.INFO)
+crossref = Crossref()
+crossref.author_orcid_search('0000-0002-9811-1176')

@@ -39,6 +39,8 @@ def main(query_option=None):
     #     open_alex.populate_instutition()
     # if (query_by_research_assocaites):
     #     open_alex.query_by_author()
+    print("Removing works by authors where author metadata is incorrect...")
+    ingestor.remove_works()
     print('Done. Records ingested')
 
 
