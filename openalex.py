@@ -1,7 +1,7 @@
 """Class for getting API data and structuring it for ingestion."""
 import requests
 from config import Config
-from orcid_list import cas_orcid_list
+# from orcid_list import cas_orcid_list
 
 
 class OpenAlex:
@@ -242,7 +242,7 @@ class OpenAlex:
                     author_orcid = author.get('orcid', -1) if author else None
                     author_name = author['display_name'] if author else None
                     author_raw_name = authorship['raw_author_name'] if author else None
-                    # author_position = authorship['author_position']
+            
                     if authorship['institutions']:
                         for institution in authorship['institutions']:
                             institution_id = institution['id']
@@ -252,25 +252,32 @@ class OpenAlex:
                         institution_id = "Not provided in metadata from publication source"
                         institution_name = "Not provided in metadata from publication source"
                         institution_country_code = "Not provided in metadata from publication source"
-                        data.append({
-                            'work_id': work['id'],
-                            'work_doi': work['ids'].get('doi', -1),
-                            'work_title': work['title'],
-                            'work_display_name': work['display_name'],
-                            'work_publisher': work['primary_location']['source'].get('host_organization_name', -1),
-                            'work_journal': work['primary_location']['source'].get('display_name', -1),
-                            'work_publication_year': work['publication_year'],
-                            'work_publication_date': work['publication_date'],
-                            'work_sustainable_dev_goal': work['sustainable_development_goals'].get('display_name', -1),
-                            'author_id': author_id,
-                            'author_orcid': author_orcid,
-                            'author_name': author_name,
-                            'author_raw_name': author_raw_name,
-                            # 'author_position': author_position,
-                            'institution_id': institution_id,
-                            'institution_name': institution_name,
-                            'institution_country_code': institution_country_code
-                        })
+                    try:
+                        work_publisher = work['primary_location']['source'].get('host_organization_name', -1)
+                        work_journal = work['primary_location']['source'].get('display_name', -1)
+                    except (TypeError, AttributeError, KeyError):
+                        work_publisher = -1
+                        work_journal = -1
+                    data.append({
+                        'work_id': work['id'],
+                        'work_doi': work['ids'].get('doi', -1),
+                        'work_title': work['title'],
+                        'work_display_name': work['display_name'],
+                        'work_publisher': work_publisher,
+                        'work_journal': work_journal,
+                        'work_publication_year': work['publication_year'],
+                        'work_publication_date': work['publication_date'],
+                        'work_sustainable_dev_goal': work['sustainable_development_goals'][0]['display_name']
+                                                    if work['sustainable_development_goals'] else -1,
+                        'author_id': author_id,
+                        'author_orcid': author_orcid,
+                        'author_name': author_name,
+                        'author_raw_name': author_raw_name,
+                        # 'author_position': author_position,
+                        'institution_id': institution_id,
+                        'institution_name': institution_name,
+                        'institution_country_code': institution_country_code
+                    })
         return data
 
     def query_by_affiliation(self):
@@ -298,24 +305,20 @@ class OpenAlex:
         orcid (list): Either a single orcid (as list of length 1) or list of orcids to query by.
                 The default is None, which triggers cas_orcid_list,
                 which represents all orcids associated with CAS researchers. 
+                Changed to only search through orcids that are known to be missing from results!
         """
         # cas_orcid_list comes from orcid_list.py
         if orcid is None:
-            orcid = cas_orcid_list
+            # orcid = cas_orcid_list
+            orcid = self.config.get_list("orcids", "orcid_list")
         urls = self._build_author_works_url(orcid)
-        print(urls)
         # assembling all works from multiples urls:
         all_works = []
-        print('start:')
-        print(all_works)
         for i, url in enumerate(urls):
             print(f"Working on url {i+1} out of {len(urls)}")
             works = self._page_thru_all_pubs(url)
-            print('works1:')
-            print(works)
             all_works.extend(works)
-            print('allworks1:')
-            print(all_works)
+    
         print(f'Total works collected from all URLs: {len(all_works)}')
         print("Structuring records for ingestion...")
         structured_data = self._structure_works(all_works)

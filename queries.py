@@ -3,24 +3,42 @@ Module for querying the publications.comprehensive_global table and returning
 publications/works for a certain period.
 """
 import pandas as pd
+import sqlalchemy as sa
+import yaml
 from db_connection import DBConnection
 
+# Load the YAML file
+with open('db_connection.yml', 'r') as file:
+    config = yaml.safe_load(file)
+
+database_url = config['database_url']
+database_port = config['database_port']
+database_password = config['database_password']
+database_user = config['database_user']
+database_name = config['database_name']
+
+# Construct the connection string for MySQL using pymysql
+connection_string = f"mysql+pymysql://{database_user}:{database_password}@{database_url}:{database_port}/{database_name}"
+
+# Create SQL engine
+engine = sa.create_engine(connection_string)
+
 # Creating the authors table
-sql_create_table = """ CREATE TABLE IF NOT EXISTS authors (
-                                        author_idx INT NOT NULL AUTO_INCREMENT,
-                                        author_wikidata VARCHAR(45),
-                                        author_orcid VARCHAR(45),
-                                        author_alexid VARCHAR(40) NOT NULL,
-                                        author_name TINYTEXT,
-                                        author_raw_name TINYTEXT,
-                                        author_role TINYTEXT,
-                                        author_department VARCHAR(255),
-                                        author_active INT,
-                                        author_notes TINYTEXT,
-                                        PRIMARY KEY (author_idX)
-                                        );
-                                        """
-DBConnection.execute_query(sql_create_table)
+# sql_create_table = """ CREATE TABLE IF NOT EXISTS authors (
+#                                         author_idx INT NOT NULL AUTO_INCREMENT,
+#                                         author_wikidata VARCHAR(45),
+#                                         author_orcid VARCHAR(45),
+#                                         author_alexid VARCHAR(40) NOT NULL,
+#                                         author_name TINYTEXT,
+#                                         author_raw_name TINYTEXT,
+#                                         author_role TINYTEXT,
+#                                         author_department VARCHAR(255),
+#                                         author_active INT,
+#                                         author_notes TINYTEXT,
+#                                         PRIMARY KEY (author_idX)
+#                                         );
+#                                         """
+# DBConnection.execute_query(sql_create_table)
 
 # Load data from csv of authors
 # Note on how to read from files in Docker SQL: 
@@ -53,36 +71,49 @@ DBConnection.execute_query(sql_create_table)
 # from_date = '2022-07-01'
 # to_date = '2023-06-30'
 
-# sql = f""" WITH cas_pubs AS (
-#             SELECT * FROM `publications`.`comprehensive_global_works` 
-#             WHERE institution_name = 'California Academy of Sciences'
-#             OR author_orcid in (SELECT author_orcid FROM authors where author_orcid is not NULL))
+# -- Use a CTE that filters works based on affiliation = CAS or author has an orcid that is currently associated with CAS
+sql = f""" 
+WITH cas_pubs AS (
+            SELECT * FROM `publications`.`comprehensive_global_works_v2` 
+             WHERE institution_name = 'California Academy of Sciences'
+             OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
+            )
+            SELECT 
+                work_id,
+                work_doi,
+                work_display_name,
+                work_publication_date,
+                work_publication_year,
+                work_publisher,
+                work_journal,
+                GROUP_CONCAT(DISTINCT author_name SEPARATOR ', ') AS authors_concatenated,
+                work_sustainable_dev_goal
 
-#             SELECT 
-#                 work_id,
-#                 work_doi,
-#                 work_display_name,
-#                 work_publication_date,
-#                 work_publication_year,
-#                 GROUP_CONCAT(DISTINCT author_name SEPARATOR ', ') AS authors_concatenated
+            FROM 
+                cas_pubs
 
-#             FROM 
-#                 cas_pubs
-
-#             GROUP BY 
-#                 work_id,
-#                 work_doi,
-#                 work_display_name,
-#                 work_publication_date,
-#                 work_publication_year
+            GROUP BY 
+                work_id,
+                work_doi,
+                work_display_name,
+                work_publication_date,
+                work_publication_year,
+                work_publisher,
+                work_journal,
+                work_sustainable_dev_goal
                 
-#             HAVING
-#                 work_publication_date >= '{from_date}'
-#                 AND work_publication_date <= '{to_date}'
-                
-#             ORDER BY authors_concatenated;
-#             """
+             HAVING
+                 work_publication_year = '2022'   
+
+            ORDER BY authors_concatenated;
+           """
 
 # result = DBConnection.execute_query(sql)
 # df = pd.DataFrame(result)
 # print(df[5])
+
+# Execute the query
+df = pd.read_sql_query(sql, engine)
+
+# Save to CSV
+df.to_csv('./cas_works_2022_v2.csv', index=False)

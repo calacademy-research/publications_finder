@@ -51,15 +51,10 @@ class OpenAlexIngest:
 
     def query_data(self, query_option):
         """Returns works object based on the option passed to OpenAlexIngest"""
-        # I think I can collapse into one self.data = just one table instead of 2 different ones
-        # and then separate records based on CAS only with a sql query.
-        # the fields for author ended up being the same.
         open_alex = OpenAlex()
         if query_option == 'by_affiliation':
-            # self.table = "collab_pubs"
             works = open_alex.query_by_affiliation()
             return works
-        # self.table = 'cas_by_author_pubs'
         works = open_alex.query_by_author()
         return works
 
@@ -106,3 +101,24 @@ class OpenAlexIngest:
             # conn.commit()
         except Exception as e:
             print(f"An error occurred: {e}")
+
+
+    def remove_works(self):
+        """
+        Remove works from authors whose affiliation data is incorrect on OpenAlex. 
+
+        """
+        sql_rm_authors = """
+                DELETE FROM comprehensive_global_works_v2
+                WHERE author_id IN (
+                'https://openalex.org/A5048870777', 
+                'https://openalex.org/A5086404490',
+                'https://openalex.org/A5053358298',
+                'https://openalex.org/A5046354008',
+                'https://openalex.org/A5019535042'
+                )
+        """
+        try:
+            DBConnection.execute_query(sql_rm_authors)
+        except Exception as e:
+            print(f"Failed to execute query: {e}")
