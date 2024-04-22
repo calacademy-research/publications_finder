@@ -72,48 +72,87 @@ engine = sa.create_engine(connection_string)
 # to_date = '2023-06-30'
 
 # -- Use a CTE that filters works based on affiliation = CAS or author has an orcid that is currently associated with CAS
-sql = f""" 
-WITH cas_pubs AS (
-            SELECT * FROM `publications`.`comprehensive_global_works_v2` 
-             WHERE institution_name = 'California Academy of Sciences'
-             OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
-            )
-            SELECT 
-                work_id,
-                work_doi,
-                work_display_name,
-                work_publication_date,
-                work_publication_year,
-                work_publisher,
-                work_journal,
-                GROUP_CONCAT(DISTINCT author_name SEPARATOR ', ') AS authors_concatenated,
-                work_sustainable_dev_goal
+# sql = f""" 
+# WITH cas_pubs AS (
+#             SELECT * FROM `publications`.`comprehensive_global_works_v2` 
+#              WHERE institution_name = 'California Academy of Sciences'
+#              OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
+#             )
+#             SELECT 
+#                 work_id,
+#                 work_doi,
+#                 work_display_name,
+#                 work_publication_date,
+#                 work_publication_year,
+#                 work_publisher,
+#                 work_journal,
+#                 GROUP_CONCAT(DISTINCT author_name SEPARATOR ', ') AS authors_concatenated,
+#                 work_sustainable_dev_goal
 
-            FROM 
-                cas_pubs
+#             FROM 
+#                 cas_pubs
 
-            GROUP BY 
-                work_id,
-                work_doi,
-                work_display_name,
-                work_publication_date,
-                work_publication_year,
-                work_publisher,
-                work_journal,
-                work_sustainable_dev_goal
+#             GROUP BY 
+#                 work_id,
+#                 work_doi,
+#                 work_display_name,
+#                 work_publication_date,
+#                 work_publication_year,
+#                 work_publisher,
+#                 work_journal,
+#                 work_sustainable_dev_goal
                 
-             HAVING
-                 work_publication_year = '2022'   
+#              HAVING
+#                  work_publication_year = '2022'   
 
-            ORDER BY authors_concatenated;
-           """
+#             ORDER BY authors_concatenated;
+#            """
 
 # result = DBConnection.execute_query(sql)
 # df = pd.DataFrame(result)
 # print(df[5])
 
+# for authors csv
+sql = """
+SELECT 
+    author_id,
+    author_name,
+    author_raw_name,
+    author_position,
+    author_is_corresponding,
+    work_id,
+    work_doi,
+    work_display_name,
+    work_publication_date,
+    work_publication_year,
+    work_publisher,
+    work_journal,
+    work_sustainable_dev_goal
+FROM 
+    (SELECT * FROM publications.comprehensive_global_works_v3 
+    WHERE institution_name = 'California Academy of Sciences'
+    OR author_orcid IN (SELECT author_orcid FROM authors WHERE author_orcid != 'NULL' AND author_active = 1)
+    ) AS cas_pubs
+GROUP BY 
+    author_id,
+    author_name,
+    author_raw_name,
+    author_position,
+    author_is_corresponding,
+    work_id,
+    work_doi,
+    work_display_name,
+    work_publication_date,
+    work_publication_year,
+    work_publisher,
+    work_journal,
+    work_sustainable_dev_goal
+HAVING work_publication_year = '2022'
+ORDER BY author_name
+"""
+
 # Execute the query
 df = pd.read_sql_query(sql, engine)
 
 # Save to CSV
-df.to_csv('./cas_works_2022_v2.csv', index=False)
+df.to_csv('./author_works_2022.csv', index=False)

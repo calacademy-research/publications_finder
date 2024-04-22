@@ -239,9 +239,11 @@ class OpenAlex:
                 if authorship:
                     author = authorship['author']
                     author_id = author['id'] if author else None
-                    author_orcid = author.get('orcid', -1) if author else None
+                    author_orcid = author['orcid'] if author else None
                     author_name = author['display_name'] if author else None
                     author_raw_name = authorship['raw_author_name'] if author else None
+                    author_position = authorship['author_position'] if author else None
+                    author_is_corresponding = authorship['is_corresponding'] if author else None
             
                     if authorship['institutions']:
                         for institution in authorship['institutions']:
@@ -253,11 +255,15 @@ class OpenAlex:
                         institution_name = "Not provided in metadata from publication source"
                         institution_country_code = "Not provided in metadata from publication source"
                     try:
-                        work_publisher = work['primary_location']['source'].get('host_organization_name', -1)
-                        work_journal = work['primary_location']['source'].get('display_name', -1)
+                        work_publisher = work['primary_location']['source'].get('host_organization_name')
+                        work_journal = work['primary_location']['source'].get('display_name')
                     except (TypeError, AttributeError, KeyError):
                         work_publisher = -1
                         work_journal = -1
+                    # try:
+                    #     work_topic = work['primary_topic'][0]['display_name']
+                    # except (TypeError, AttributeError, KeyError):
+                    #     work_topic = -1
                     data.append({
                         'work_id': work['id'],
                         'work_doi': work['ids'].get('doi', -1),
@@ -269,11 +275,15 @@ class OpenAlex:
                         'work_publication_date': work['publication_date'],
                         'work_sustainable_dev_goal': work['sustainable_development_goals'][0]['display_name']
                                                     if work['sustainable_development_goals'] else -1,
+                        'work_topic': work.get('primary_topic', {}).get('display_name', -1),
+                        'work_is_open_access': work['open_access'].get('is_oa', -1),
+                        'work_cited_by_count': work['cited_by_count'],
                         'author_id': author_id,
                         'author_orcid': author_orcid,
                         'author_name': author_name,
                         'author_raw_name': author_raw_name,
-                        # 'author_position': author_position,
+                        'author_position': author_position,
+                        'author_is_corresponding': author_is_corresponding,
                         'institution_id': institution_id,
                         'institution_name': institution_name,
                         'institution_country_code': institution_country_code
@@ -303,9 +313,8 @@ class OpenAlex:
 
         Args:
         orcid (list): Either a single orcid (as list of length 1) or list of orcids to query by.
-                The default is None, which triggers cas_orcid_list,
-                which represents all orcids associated with CAS researchers. 
-                Changed to only search through orcids that are known to be missing from results!
+                The default is None, which triggers orcid_list from the config file,
+                which represents orcids of people known to be left out of affiliation search. 
         """
         # cas_orcid_list comes from orcid_list.py
         if orcid is None:

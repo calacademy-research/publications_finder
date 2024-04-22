@@ -27,7 +27,7 @@ class OpenAlexIngest:
             self.data = self.query_data(query_option)
 
         # Joe - create the table here.
-        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works_v2 (
+        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works_v3 (
                                             work_id VARCHAR(255) NOT NULL,
                                             work_doi TINYTEXT,
                                             work_title VARCHAR(1000),
@@ -37,10 +37,15 @@ class OpenAlexIngest:
                                             work_publication_year INT,
                                             work_publication_date DATE,
                                             work_sustainable_dev_goal VARCHAR(1000),
+                                            work_topic VARCHAR(1000),
+                                            work_is_open_access VARCHAR(5),
+                                            work_cited_by_count INT,
                                             author_id VARCHAR(40) NOT NULL,
                                             author_orcid VARCHAR(40),
                                             author_name TINYTEXT,
                                             author_raw_name TINYTEXT,
+                                            author_position TINYTEXT,
+                                            author_is_corresponding VARCHAR(5),
                                             institution_id VARCHAR(255) NOT NULL,
                                             institution_name TINYTEXT,
                                             institution_country_code TINYTEXT, 
@@ -63,20 +68,24 @@ class OpenAlexIngest:
           # Use insert ignore to skip records where an author's affiliation
             # is repeated for the same publication. This info is redundant. 
         sql = """
-                INSERT IGNORE INTO comprehensive_global_works_v2
+                INSERT IGNORE INTO comprehensive_global_works_v3
                 (work_id, work_doi,
                 work_title, work_display_name, work_publisher, work_journal,
-                work_publication_year, work_publication_date, work_sustainable_dev_goal,
+                work_publication_year, work_publication_date,
+                work_sustainable_dev_goal, work_topic, work_is_open_access, work_cited_by_count,                     
                 author_id, author_orcid, author_name, author_raw_name,
+                author_position, author_is_corresponding,
                 institution_id, institution_name, institution_country_code)
                 VALUES
                 (%s, %s,
                 %s, %s, %s, %s,
-                %s, %s, %s,
+                %s, %s,
                 %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s,
                 %s, %s, %s)
         """
-        # 15 fields
+        # 21 fields
         try:
             for item in self.data:
                 DBConnection.execute_query(sql, (
@@ -89,11 +98,15 @@ class OpenAlexIngest:
                     item['work_publication_year'],
                     item['work_publication_date'],
                     item['work_sustainable_dev_goal'],
+                    item['work_topic'],
+                    item['work_is_open_access'],
+                    item['work_cited_by_count'],
                     item['author_id'],
                     item['author_orcid'],
                     item['author_name'],
                     item['author_raw_name'],
-                    # item['author_position'],
+                    item['author_position'],
+                    item['author_is_corresponding'],
                     item['institution_id'],
                     item['institution_name'],
                     item['institution_country_code']
@@ -109,7 +122,7 @@ class OpenAlexIngest:
 
         """
         sql_rm_authors = """
-                DELETE FROM comprehensive_global_works_v2
+                DELETE FROM comprehensive_global_works_v3
                 WHERE author_id IN (
                 'https://openalex.org/A5048870777', 
                 'https://openalex.org/A5086404490',
