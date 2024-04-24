@@ -260,10 +260,6 @@ class OpenAlex:
                     except (TypeError, AttributeError, KeyError):
                         work_publisher = -1
                         work_journal = -1
-                    # try:
-                    #     work_topic = work['primary_topic'][0]['display_name']
-                    # except (TypeError, AttributeError, KeyError):
-                    #     work_topic = -1
                     data.append({
                         'work_id': work['id'],
                         'work_doi': work['ids'].get('doi', -1),

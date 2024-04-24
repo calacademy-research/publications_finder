@@ -1,6 +1,6 @@
 -- Use a CTE that filters works based on affiliation = CAS or author has an orcid that is currently associated with CAS
 WITH cas_pubs AS (
-            SELECT * FROM `publications`.`comprehensive_global_works_v2` 
+            SELECT * FROM `publications`.`comprehensive_global_works_v3` 
              WHERE institution_name = 'California Academy of Sciences'
              OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
             )
@@ -15,7 +15,9 @@ WITH cas_pubs AS (
                 work_publisher,
                 work_journal,
                 GROUP_CONCAT(DISTINCT author_name SEPARATOR ', ') AS authors_concatenated,
-                work_sustainable_dev_goal
+                work_sustainable_dev_goal,
+                work_is_open_access,
+                work_cited_by_count
 
             FROM 
                 cas_pubs
@@ -28,7 +30,9 @@ WITH cas_pubs AS (
                 work_publication_year,
                 work_publisher,
                 work_journal,
-                work_sustainable_dev_goal
+                work_sustainable_dev_goal,
+                work_is_open_access,
+                work_cited_by_count
                 
             --  Filter on groups for a certain time period
              HAVING

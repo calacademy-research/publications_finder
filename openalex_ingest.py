@@ -27,7 +27,7 @@ class OpenAlexIngest:
             self.data = self.query_data(query_option)
 
         # Joe - create the table here.
-        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works_v3 (
+        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works_v4 (
                                             work_id VARCHAR(255) NOT NULL,
                                             work_doi TINYTEXT,
                                             work_title VARCHAR(1000),
@@ -68,7 +68,7 @@ class OpenAlexIngest:
           # Use insert ignore to skip records where an author's affiliation
             # is repeated for the same publication. This info is redundant. 
         sql = """
-                INSERT IGNORE INTO comprehensive_global_works_v3
+                INSERT IGNORE INTO comprehensive_global_works_v4
                 (work_id, work_doi,
                 work_title, work_display_name, work_publisher, work_journal,
                 work_publication_year, work_publication_date,
@@ -122,7 +122,7 @@ class OpenAlexIngest:
 
         """
         sql_rm_authors = """
-                DELETE FROM comprehensive_global_works_v3
+                DELETE FROM comprehensive_global_works_v4
                 WHERE author_id IN (
                 'https://openalex.org/A5048870777', 
                 'https://openalex.org/A5086404490',
