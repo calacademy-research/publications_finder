@@ -10,6 +10,7 @@ WITH cas_pubs AS (
                 cas_pubs.author_id,
                 cas_pubs.author_name,
                 cas_pubs.author_raw_name,
+                author_department,
                 author_position,
                 author_is_corresponding,
                 authors.author_role,
@@ -35,6 +36,7 @@ WITH cas_pubs AS (
                 cas_pubs.author_id,
                 cas_pubs.author_name,
                 cas_pubs.author_raw_name,
+                author_department,
                 author_position,
                 author_is_corresponding,
                 authors.author_role,
@@ -51,7 +53,7 @@ WITH cas_pubs AS (
                 
             --  Filter on groups for a certain time period
              HAVING
-                 work_publication_year = '2022'
+                 work_publication_year = '2023'
                 -- AND work_publication_date <= '2023-06-30' 
 
           
