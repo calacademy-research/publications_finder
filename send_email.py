@@ -83,6 +83,77 @@ def casworks_to_df_csv(engine, output_file):
     df.to_csv(output_file, index=False)
     return df
 
+def casworks_by_author_to_df_csv(engine, output_file):
+    """
+    Generate a csv of CAS works by individual author to attach to an email.
+
+    Args:
+    engine (sqlalchemy engine instance)
+    output_file (str): csv path of query results
+
+    Returns:
+    df: (pandas df) df of query results
+    """
+    query = f"""
+        WITH cas_pubs AS (
+            SELECT * FROM `publications`.`comprehensive_global_works_v3` 
+             WHERE institution_name = 'California Academy of Sciences'
+             OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
+            )
+        
+            SELECT 
+                cas_pubs.author_id,
+                cas_pubs.author_name,
+                cas_pubs.author_raw_name,
+                author_department,
+                author_position,
+                author_is_corresponding,
+                authors.author_role,
+                work_id,
+                work_doi,
+                work_display_name,
+                work_publication_date,
+                work_publication_year,
+                work_publisher,
+                work_journal,
+                work_sustainable_dev_goal,
+                work_is_open_access,
+                work_cited_by_count
+
+            FROM 
+                cas_pubs
+
+            LEFT JOIN
+            authors 
+            ON cas_pubs.author_id = authors.author_alexid
+
+            GROUP BY 
+                cas_pubs.author_id,
+                cas_pubs.author_name,
+                cas_pubs.author_raw_name,
+                author_department,
+                author_position,
+                author_is_corresponding,
+                authors.author_role,
+                work_id,
+                work_doi,
+                work_display_name,
+                work_publication_date,
+                work_publication_year,
+                work_publisher,
+                work_journal,
+                work_sustainable_dev_goal,
+                work_is_open_access,
+                work_cited_by_count
+                
+             HAVING
+                 work_publication_year = {FROM_YEAR}
+            ORDER BY cas_pubs.author_name;
+"""
+    df = pd.read_sql_query(query, engine)
+    df.to_csv(output_file, index=False)
+    return df
+
 # this is not a very helpful vis
 def create_lineplot(df, time_period=FROM_YEAR):
     plt.figure(figsize=(10, 5))
@@ -134,12 +205,16 @@ def create_email(subject, body, attachment_filename_list):
     # server.quit()
 
 engine = create_engine()
-outfile = f'email_attachments/works_{FROM_YEAR}.csv'
-df = casworks_to_df_csv(engine, outfile )
+outfile_works = f'email_attachments/works_{FROM_YEAR}.csv'
+df = casworks_to_df_csv(engine, outfile_works )
 create_lineplot(df)
+outfile_author_works = f'email_attachments/works_by_author_{FROM_YEAR}.csv'
+df = casworks_by_author_to_df_csv(engine, outfile_author_works )
 attachments = [f'email_attachments/publications_{FROM_YEAR}.png',
-               f'email_attachments/works_{FROM_YEAR}.csv']
+               outfile_works,
+               outfile_author_works]
 email = create_email("Test Publications",
                      "This is a test",
                      attachments)
 print(email)
+
