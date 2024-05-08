@@ -17,17 +17,28 @@ FROM_YEAR = config.get_int("years", "from_year")
 TO_YEAR = config.get_int("years", "to_year")
 RESULTS_BY_INDIVIDUAL_AUTHOR = config.get_boolean("query_results", "single_authors")
 CURATORS = config.get_boolean("query_results", "curators")
+SUSTAINABILITY_GOALS = config.get_boolean("query_results", "sustainable_goals")
+DEPARTMENT=config.get_string("query_results", "department")
+JOURNAL_INFO=config.get_boolean("query_results", "journal_info")
 
 # Assembling the OUTFILE path
 base_path = 'generated_csvs/'
-options = ['curators' if CURATORS is True else '',
-           'works_by_author' if RESULTS_BY_INDIVIDUAL_AUTHOR is True else 'total_works',
-           FROM_YEAR,
-           TO_YEAR
-        ]
+options = []
+
+if CURATORS is True:
+    options.append('curators')
+if SUSTAINABILITY_GOALS is True:
+    options.append('sustainability_goals')
+if DEPARTMENT is not None:
+    options.append(f'{DEPARTMENT}')
+if FROM_YEAR:
+    options.append(str(FROM_YEAR))
+if TO_YEAR:
+    options.append(str(TO_YEAR))
+
 filters = f'{"_".join(map(str,options))}'
-OUTFILE = base_path + filters
-print ('csv Location: ', OUTFILE)
+OUTFILE = base_path + filters + '.csv'
+print ('Publications csv saved to: ', OUTFILE)
 
 def check_outfile_directory(dir_path='./generated_csvs/'):
     """Create directory for generated csvs if it doesn't exist."""
@@ -96,7 +107,9 @@ def create_engine():
 # """
 # DBConnection.execute_query(sql_load_data)
 
-def concat_authors_works_to_df_csv(engine, output_file=OUTFILE):
+def concat_authors_works_to_df_csv(engine,
+                                   goals=SUSTAINABILITY_GOALS,
+                                   output_file=OUTFILE):
     """
     Generate a csv of CAS works with all authors concatenated into one field.
     This is useful for counting all works for a time interval since
@@ -105,6 +118,7 @@ def concat_authors_works_to_df_csv(engine, output_file=OUTFILE):
     Args:
     engine (sqlalchemy engine instance)
     output_file (str): csv path of query results. Default is OUTFILE
+    goals (bool): whether or not to sort papers by sustainability goals and display counts of each goal.
 
     Returns:
     df: (pandas df) df of query results
@@ -150,10 +164,19 @@ def concat_authors_works_to_df_csv(engine, output_file=OUTFILE):
             ORDER BY authors_concatenated;
         """
     df = pd.read_sql_query(query, engine)
+    df['work_sustainable_dev_goal'] = df['work_sustainable_dev_goal'].str.replace('-1', 'Uncategorized')
+    if goals is True:
+        df = df.sort_values('work_sustainable_dev_goal')
+        goal_counts= df.groupby('work_sustainable_dev_goal').size().reset_index(name='counts')
+        goal_counts = goal_counts.sort_values('counts')
+        print(goal_counts)
     df.to_csv(output_file, index=False)
     return df
 
-def single_authors_to_df_csv(engine, output_file, curators=CURATORS):
+def single_authors_to_df_csv(engine,
+                             curators=CURATORS,
+                             department=DEPARTMENT,
+                             output_file=OUTFILE):
     """
     Generate a csv of CAS works by individual author.
     This is useful for filtering by individual role, department, etc.
@@ -162,6 +185,8 @@ def single_authors_to_df_csv(engine, output_file, curators=CURATORS):
     Args:
     engine (sqlalchemy engine instance)
     output_file (str): csv path of query results. Default is OUTFILE.
+    curators (bool): Filter for curators vs everyone else.
+    department (str): Filter to only get results for certain department.
 
     Returns:
     df: (pandas df) dataframe of query results.
@@ -220,21 +245,85 @@ def single_authors_to_df_csv(engine, output_file, curators=CURATORS):
                 work_cited_by_count
                 
              HAVING
-                 work_publication_year = {FROM_YEAR}
+                 work_publication_year >= {FROM_YEAR}
+                 AND work_publication_year <= {TO_YEAR}
+
             ORDER BY cas_pubs.author_name;
 """
     df = pd.read_sql_query(query, engine)
     if curators is True:
         df = df[df['author_role'] == 'Curator']
+    if curators is False:
+        df = df[df['author_role'] != 'Curator']
+    if department is not None:
+        df = df[df['author_department'] == department]
+        df = combine_authors(df)
+        df = df.drop(columns=['author_name', 'author_raw_name',
+                         'author_department','author_position',
+                         'author_is_corresponding','author_role'])
     df.to_csv(output_file, index=False)
+    return df
+
+def combine_authors(df, publication_id_col='work_id',
+                    author_name_col='author_raw_name',
+                    combined_authors_col='combined_authors'):
+    """
+    Combine multiple authors for each publication into a single column.
+
+    Args:
+    - df: DataFrame containing CAS publications and authors.
+    - publication_id_col: The column containing the publication IDs, openAlex work_ids in this case.
+    - author_name_col: The column containing the author names. Using raw names in this case.
+    - combined_authors_col: New column to store the combined author names.
+
+    Returns:
+    - A new DataFrame with combined author names for each publication.
+    """
+    # Group by publication ID and combine author names by
+    # concatenating the author names for each group into a single string, separated by commas.
+    combined = df.groupby(publication_id_col)[author_name_col].apply(lambda x: ', '.join(x)) \
+        .reset_index(name=combined_authors_col)
+
+    # Merge the combined authors back into the original DataFrame
+    # and drop duplicates
+    df_combined = df.merge(combined,
+                           on=publication_id_col,
+                           how='left') \
+        .drop_duplicates(publication_id_col)
+
+    return df_combined
+
+def return_journal_stats(df):
+    """
+    Returns a dataframe of journal publishers and titles sorted in ascending order of how many CAS works
+    were published in each combination of publisher + journal
+
+    Args:
+    df (pandas DataFrame)
+
+    Returns:
+    DataFrame sorted in ascending count order
+    """
+    df = df.groupby(['work_publisher', 'work_journal']).size().reset_index(name="count").sort_values("count",ascending=False)
     return df
 
 def main():
     check_outfile_directory()
     engine = create_engine()
     if RESULTS_BY_INDIVIDUAL_AUTHOR is True:
-        df = single_authors_to_df_csv(engine, OUTFILE)
+        df = single_authors_to_df_csv(engine,
+                                 curators=CURATORS,
+                                 department=DEPARTMENT,
+                                 output_file=OUTFILE)
     else:
-        df = concat_authors_works_to_df_csv(engine, OUTFILE)      
+        df = concat_authors_works_to_df_csv(engine,
+                                       goals=SUSTAINABILITY_GOALS,
+                                       output_file=OUTFILE) 
+    if JOURNAL_INFO is True:
+        journal_info = return_journal_stats(df)
+        path_for_journal_csv = OUTFILE + '_journal_info.csv'
+        journal_info.to_csv(path_for_journal_csv, index=False)
+        print('Journal Info:\n', journal_info)
+        print('Journal Info saved to: ', path_for_journal_csv)
 if __name__ == "__main__":
     main()
