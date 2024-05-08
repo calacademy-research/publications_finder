@@ -20,6 +20,7 @@ CURATORS = config.get_boolean("query_results", "curators")
 SUSTAINABILITY_GOALS = config.get_boolean("query_results", "sustainable_goals")
 DEPARTMENT=config.get_string("query_results", "department")
 JOURNAL_INFO=config.get_boolean("query_results", "journal_info")
+OPEN_ACCESS=config.get_boolean("query_results", "open_access_info")
 
 # Assembling the OUTFILE path
 base_path = 'generated_csvs/'
@@ -315,6 +316,20 @@ def return_sustainability_goal_stats(df):
     goal_counts = goal_counts.sort_values('counts', ascending=False)
     return goal_counts
 
+def return_open_access_stats(df):
+    """
+    Returns a dataframe of open access stats (open=1, closed=0)
+
+    Args:
+    df (pandas DataFrame)
+
+    Returns:
+    prints value counts
+    """
+    oa_stats = df['work_is_open_access'].value_counts()
+    print(oa_stats)
+    return oa_stats
+
 def main():
     check_outfile_directory()
     engine = create_engine()
@@ -338,5 +353,9 @@ def main():
         goal_info.to_csv(path_for_goal_csv + '.csv', index=False)
         print('Sustainability goal counts: \n', goal_info)
         print('Sustainability Goal Info saved to: ', path_for_goal_csv)
+    if OPEN_ACCESS is True:
+        oa_stats = return_open_access_stats(df)
+        print(oa_stats)
+
 if __name__ == "__main__":
     main()
