@@ -2,39 +2,27 @@
 
 Use cases:
 
-* Find all CAS papers in a given year:    
-1. Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   
-2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `False`.  
+* Find all CAS affiliated papers during a year interval or single year:    
+1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   
+2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `False`.    
 3. Run `python queries.py`  
 
 * Find all CAS papers only from curators in a given year or year range.  
-1. Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.  
+1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.    
 2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.  
 3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `True`.
 4. Run `python queries.py`
 
 * Find all CAS papers only from non-curators in a given year or year range.  
-1. Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.  
+1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.    
 2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.  
 3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `False`.  
-4. Run `python queries.py`
-
-
-* Find all affiliated authors in a given year  
-Same instructions as Find all CAS papers in a given year.  
- 
-* What goals [areas] we are addressing with collections based research?
- * List papers by goals:
- 1. Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.  
- 2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `False`.  
- 3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `False`.  
- 4. Set `sustainable_goals` under `[query_results]` in [config.ini](config.ini) to `True`. 
- 5. Run `python queries.py`    
+4. Run `python queries.py`  
 
 * Find publications by department (picking up aquarium, planetarium, etc)  
- 1. Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.  
- 2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.  
- 3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `False` for all roles, `True` for curators only.  
+ 1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.    
+ 2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.   
+ 3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `False`.  
  4. Set `department` to one of the allowed values under `[query_results]` in [config.ini](config.ini).
  Allowed values:
   Anthropology  
@@ -57,14 +45,19 @@ Same instructions as Find all CAS papers in a given year.
 
  5. Run `python queries.py`  
 
+* Toggle a csv of journal information for any of the queries above.
+(Saves a csv sorted by counts and also prints a count of papers by publisher + journal).  
+1. Keep options for desired query.  
+2. Set `journal_info` under `[query_results]` in [config.ini](config.ini) to `True`.   
+3. Run `python queries.py`
 
-Generate stats? Not sure what would go here.
+* Toggle a csv of UN sustainability goals for any of the queries above.
+What goals are we addressing with collections based research?
+ (Saves a csv sorted by goal counts and also prints a count of papers by goal).
+ 1. Keep options for desired query.  
+ 2. Set `sustainable_goals` under `[query_results]` in [config.ini](config.ini) to `True`.  
+ 3. Run `python queries.py`    
 
-derived citation index (how cited each paper was) - shoud also be able to query for earlier years
-
-
-
-list of journals we are pubnlising in for a given year or year range
 
 ratio/l;ist of open vs closed journals
 

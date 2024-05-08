@@ -27,8 +27,6 @@ options = []
 
 if CURATORS is True:
     options.append('curators')
-if SUSTAINABILITY_GOALS is True:
-    options.append('sustainability_goals')
 if DEPARTMENT is not None:
     options.append(f'{DEPARTMENT}')
 if FROM_YEAR:
@@ -37,7 +35,7 @@ if TO_YEAR:
     options.append(str(TO_YEAR))
 
 filters = f'{"_".join(map(str,options))}'
-OUTFILE = base_path + filters + '.csv'
+OUTFILE = base_path + filters
 print ('Publications csv saved to: ', OUTFILE)
 
 def check_outfile_directory(dir_path='./generated_csvs/'):
@@ -108,7 +106,6 @@ def create_engine():
 # DBConnection.execute_query(sql_load_data)
 
 def concat_authors_works_to_df_csv(engine,
-                                   goals=SUSTAINABILITY_GOALS,
                                    output_file=OUTFILE):
     """
     Generate a csv of CAS works with all authors concatenated into one field.
@@ -165,12 +162,7 @@ def concat_authors_works_to_df_csv(engine,
         """
     df = pd.read_sql_query(query, engine)
     df['work_sustainable_dev_goal'] = df['work_sustainable_dev_goal'].str.replace('-1', 'Uncategorized')
-    if goals is True:
-        df = df.sort_values('work_sustainable_dev_goal')
-        goal_counts= df.groupby('work_sustainable_dev_goal').size().reset_index(name='counts')
-        goal_counts = goal_counts.sort_values('counts')
-        print(goal_counts)
-    df.to_csv(output_file, index=False)
+    df.to_csv(output_file + '.csv', index=False)
     return df
 
 def single_authors_to_df_csv(engine,
@@ -261,7 +253,7 @@ def single_authors_to_df_csv(engine,
         df = df.drop(columns=['author_name', 'author_raw_name',
                          'author_department','author_position',
                          'author_is_corresponding','author_role'])
-    df.to_csv(output_file, index=False)
+    df.to_csv(output_file + '.csv', index=False)
     return df
 
 def combine_authors(df, publication_id_col='work_id',
@@ -307,6 +299,22 @@ def return_journal_stats(df):
     df = df.groupby(['work_publisher', 'work_journal']).size().reset_index(name="count").sort_values("count",ascending=False)
     return df
 
+def return_sustainability_goal_stats(df):
+    """
+    Returns a dataframe of sustainability goals sorted in ascending order of how many CAS works
+    were identified under each goal.
+
+    Args:
+    df (pandas DataFrame)
+
+    Returns:
+    DataFrame sorted in ascending count order
+    """
+    df = df.sort_values('work_sustainable_dev_goal')
+    goal_counts= df.groupby('work_sustainable_dev_goal').size().reset_index(name='counts')
+    goal_counts = goal_counts.sort_values('counts', ascending=False)
+    return goal_counts
+
 def main():
     check_outfile_directory()
     engine = create_engine()
@@ -317,13 +325,18 @@ def main():
                                  output_file=OUTFILE)
     else:
         df = concat_authors_works_to_df_csv(engine,
-                                       goals=SUSTAINABILITY_GOALS,
                                        output_file=OUTFILE) 
     if JOURNAL_INFO is True:
         journal_info = return_journal_stats(df)
-        path_for_journal_csv = OUTFILE + '_journal_info.csv'
-        journal_info.to_csv(path_for_journal_csv, index=False)
+        path_for_journal_csv = OUTFILE + '_journal_info'
+        journal_info.to_csv(path_for_journal_csv + '.csv', index=False)
         print('Journal Info:\n', journal_info)
         print('Journal Info saved to: ', path_for_journal_csv)
+    if SUSTAINABILITY_GOALS is True:
+        goal_info = return_sustainability_goal_stats(df)
+        path_for_goal_csv = OUTFILE + '_goal_info'
+        goal_info.to_csv(path_for_goal_csv + '.csv', index=False)
+        print('Sustainability goal counts: \n', goal_info)
+        print('Sustainability Goal Info saved to: ', path_for_goal_csv)
 if __name__ == "__main__":
     main()
