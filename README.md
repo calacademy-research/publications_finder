@@ -1,6 +1,7 @@
 # publications_finder
 
 ## Use cases:
+will change to argparse next. 
 
 ### Find all CAS affiliated papers during a year interval or single year:    
 1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   
