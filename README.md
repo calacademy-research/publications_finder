@@ -3,17 +3,21 @@
 Use cases:
 
 * Find all CAS papers in a given year:    
-Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   
-Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `False`.  
-Run `python queries.py`  
+1. Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   
+2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `False`.  
+3. Run `python queries.py`  
 
-* Find all CAS papers only from curators in a given year or year range.
-Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.  
-Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.  
-Set `curators` under `[query_results]` in [config.ini](config.ini) to `True`.
-Run `python queries.py`
+* Find all CAS papers only from curators in a given year or year range.  
+1. Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.  
+2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.  
+3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `True`.
+4. Run `python queries.py`
 
-* find all cas papers only from non-curators in a given year or year range
+* Find all CAS papers only from non-curators in a given year or year range.  
+1. Set `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.  
+2. Set `curators` under `[query_results]` in [config.ini](config.ini) to `False`.  
+3. Run `python queries.py`
+
 
 Find all affiliated authors in a given year
  
