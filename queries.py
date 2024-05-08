@@ -25,14 +25,9 @@ options = ['curators' if CURATORS is True else '',
            FROM_YEAR,
            TO_YEAR
         ]
-filters = f'{"_".join(str(options))}'
+filters = f'{"_".join(map(str,options))}'
 OUTFILE = base_path + filters
-print (OUTFILE)
-
-# if RESULTS_BY_INDIVIDUAL_AUTHOR is True:
-#     OUTFILE = f'generated_csvs/works_by_author_{FROM_YEAR}_{TO_YEAR}'
-# else:
-#     OUTFILE = f'generated_csvs/total_works_{FROM_YEAR}_{TO_YEAR}'
+print ('csv Location: ', OUTFILE)
 
 def check_outfile_directory(dir_path='./generated_csvs/'):
     """Create directory for generated csvs if it doesn't exist."""
