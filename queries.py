@@ -4,6 +4,7 @@ works for a certain period. The works are organized by either concatenated autho
 or by individual authors. The individual authors option provides role and department information
 for each author. The concatenated authors option does not. 
 """
+import argparse
 import os
 import pandas as pd
 import sqlalchemy as sa
@@ -12,32 +13,32 @@ from db_connection import DBConnection
 from config import Config
 
 # Set config variables
-config = Config()
-FROM_YEAR = config.get_int("years", "from_year")
-TO_YEAR = config.get_int("years", "to_year")
-RESULTS_BY_INDIVIDUAL_AUTHOR = config.get_boolean("query_results", "single_authors")
-CURATORS = config.get_boolean("query_results", "curators")
-SUSTAINABILITY_GOALS = config.get_boolean("query_results", "sustainable_goals")
-DEPARTMENT=config.get_string("query_results", "department")
-JOURNAL_INFO=config.get_boolean("query_results", "journal_info")
-OPEN_ACCESS=config.get_boolean("query_results", "open_access_info")
+# config = Config()
+# FROM_YEAR = config.get_int("years", "from_year")
+# TO_YEAR = config.get_int("years", "to_year")
+# RESULTS_BY_INDIVIDUAL_AUTHOR = config.get_boolean("query_results", "single_authors")
+# CURATORS = config.get_boolean("query_results", "curators")
+# SUSTAINABILITY_GOALS = config.get_boolean("query_results", "sustainable_goals")
+# DEPARTMENT=config.get_string("query_results", "department")
+# JOURNAL_INFO=config.get_boolean("query_results", "journal_info")
+# OPEN_ACCESS=config.get_boolean("query_results", "open_access_info")
 
-# Assembling the OUTFILE path
-base_path = 'generated_csvs/'
-options = []
+# # Assembling the OUTFILE path
+# base_path = 'generated_csvs/'
+# options = []
 
-if CURATORS is True:
-    options.append('curators')
-if DEPARTMENT is not None:
-    options.append(f'{DEPARTMENT}')
-if FROM_YEAR:
-    options.append(str(FROM_YEAR))
-if TO_YEAR:
-    options.append(str(TO_YEAR))
+# if CURATORS is True:
+#     options.append('curators')
+# if DEPARTMENT is not None:
+#     options.append(f'{DEPARTMENT}')
+# if FROM_YEAR:
+#     options.append(str(FROM_YEAR))
+# if TO_YEAR:
+#     options.append(str(TO_YEAR))
 
-filters = f'{"_".join(map(str,options))}'
-OUTFILE = base_path + filters
-print ('Publications csv saved to: ', OUTFILE)
+# filters = f'{"_".join(map(str,options))}'
+# OUTFILE = base_path + filters
+# print ('Publications csv saved to: ', OUTFILE)
 
 def check_outfile_directory(dir_path='./generated_csvs/'):
     """Create directory for generated csvs if it doesn't exist."""
@@ -107,7 +108,9 @@ def create_engine():
 # DBConnection.execute_query(sql_load_data)
 
 def concat_authors_works_to_df_csv(engine,
-                                   output_file=OUTFILE):
+                                   from_year,
+                                   to_year,
+                                   output_file):
     """
     Generate a csv of CAS works with all authors concatenated into one field.
     This is useful for counting all works for a time interval since
@@ -157,19 +160,21 @@ def concat_authors_works_to_df_csv(engine,
                 work_cited_by_count
 
              HAVING
-                 work_publication_year >= {FROM_YEAR}
-                 AND work_publication_year <= {TO_YEAR}
+                 work_publication_year >= {from_year}
+                 AND work_publication_year <= {to_year}
             ORDER BY authors_concatenated;
         """
     df = pd.read_sql_query(query, engine)
     df['work_sustainable_dev_goal'] = df['work_sustainable_dev_goal'].str.replace('-1', 'Uncategorized')
-    df.to_csv(output_file + '.csv', index=False)
+    df.to_csv(output_file, index=False)
     return df
 
 def single_authors_to_df_csv(engine,
-                             curators=CURATORS,
-                             department=DEPARTMENT,
-                             output_file=OUTFILE):
+                             curators,
+                             department,
+                             from_year,
+                             to_year,
+                             output_file):
     """
     Generate a csv of CAS works by individual author.
     This is useful for filtering by individual role, department, etc.
@@ -238,8 +243,8 @@ def single_authors_to_df_csv(engine,
                 work_cited_by_count
                 
              HAVING
-                 work_publication_year >= {FROM_YEAR}
-                 AND work_publication_year <= {TO_YEAR}
+                 work_publication_year >= {from_year}
+                 AND work_publication_year <= {to_year}
 
             ORDER BY cas_pubs.author_name;
 """
@@ -254,7 +259,7 @@ def single_authors_to_df_csv(engine,
         df = df.drop(columns=['author_name', 'author_raw_name',
                          'author_department','author_position',
                          'author_is_corresponding','author_role'])
-    df.to_csv(output_file + '.csv', index=False)
+    df.to_csv(output_file, index=False)
     return df
 
 def combine_authors(df, publication_id_col='work_id',
@@ -330,30 +335,92 @@ def return_open_access_stats(df):
     print(oa_stats)
     return oa_stats
 
+def parse_args():
+    """Parse the command line arguments"""
+    # action='store_true' means they are false by default and become true if included in the command line.
+    parser = argparse.ArgumentParser(description='Settings for query results.')
+    parser.add_argument('--from_year', type=int, default=2022, help='Start year')
+    parser.add_argument('--to_year', type=int, default=2022, help='End year')
+    parser.add_argument('--single_authors', action='store_true')
+    parser.add_argument('--curators', action='store_true', help='Include curators in the results')
+    parser.add_argument('--sustainable_goals', action='store_true', help='Filter for sustainable goals')
+    parser.add_argument('--department', type=str, choices=[
+        'Anthropology', 'Aquarium', 'Botany', 'Center for Biodiversity and Community Science',
+        'Center for Comparative Genomics', 'Center for Exploration and Travel Health',
+        'Coral Regeneration Lab', 'Education', 'Entomology', 'Herpetology', 'Ichthyology',
+        'iNaturalist', 'Invertebrate Zoology and Geology', 'Microbiology',
+        'Ornithology and Mammalogy', 'Planetarium', 'Scientific Computing'
+    ])
+    parser.add_argument('--journal_info', action='store_true')
+    parser.add_argument('--open_access_info', action='store_true')
+    # parser.add_argument('--output_file', type=str)
+    return parser.parse_args()
+
+def assemble_outfile_path(args):
+    """Assemble outfile path based on command line arguments."""
+    base_path = 'generated_csvs/'
+    options = []
+
+    if args.curators:
+        options.append('curators')
+    if args.department:
+        options.append(args.department)
+    if args.from_year:
+        options.append(str(args.from_year))
+    if args.to_year:
+        options.append(str(args.to_year))
+
+    filters = "_".join(options)
+    outfile = f"{base_path}{filters}"
+    return outfile
+
+
 def main():
+    """main function to run query with the specified command line settings."""
+    args = parse_args()
+
+    outfile = assemble_outfile_path(args)
+    print('Publications csv saved to:', outfile + '.csv')
     check_outfile_directory()
+
     engine = create_engine()
-    if RESULTS_BY_INDIVIDUAL_AUTHOR is True:
+    # if RESULTS_BY_INDIVIDUAL_AUTHOR is True:
+    if args.single_authors:
         df = single_authors_to_df_csv(engine,
-                                 curators=CURATORS,
-                                 department=DEPARTMENT,
-                                 output_file=OUTFILE)
+                                #  curators=CURATORS,
+                                #  department=DEPARTMENT,
+                                #  output_file=OUTFILE)
+                                curators=args.curators,
+                                from_year=args.from_year,
+                                to_year=args.to_year,
+                                department=args.department,
+                                output_file=outfile + '.csv')
     else:
         df = concat_authors_works_to_df_csv(engine,
-                                       output_file=OUTFILE) 
-    if JOURNAL_INFO is True:
+                                    #    output_file=OUTFILE)
+                                    from_year=args.from_year,
+                                    to_year=args.to_year,
+                                    output_file=outfile + '.csv')
+    # if JOURNAL_INFO is True:
+    if args.journal_info:
         journal_info = return_journal_stats(df)
-        path_for_journal_csv = OUTFILE + '_journal_info'
+        # path_for_journal_csv = OUTFILE + '_journal_info'
+        path_for_journal_csv = outfile + '_journal_info'
         journal_info.to_csv(path_for_journal_csv + '.csv', index=False)
         print('Journal Info:\n', journal_info)
         print('Journal Info saved to: ', path_for_journal_csv)
-    if SUSTAINABILITY_GOALS is True:
+
+    # if SUSTAINABILITY_GOALS is True:
+    if args.sustainable_goals:
         goal_info = return_sustainability_goal_stats(df)
-        path_for_goal_csv = OUTFILE + '_goal_info'
+        # path_for_goal_csv = OUTFILE + '_goal_info'
+        path_for_goal_csv = outfile + '_goal_info'
         goal_info.to_csv(path_for_goal_csv + '.csv', index=False)
         print('Sustainability goal counts: \n', goal_info)
         print('Sustainability Goal Info saved to: ', path_for_goal_csv)
-    if OPEN_ACCESS is True:
+
+    # if OPEN_ACCESS is True:
+    if args.open_access_info:
         oa_stats = return_open_access_stats(df)
         print(oa_stats)
 
