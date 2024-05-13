@@ -6,7 +6,9 @@ will change to argparse next.
 ### Find all CAS affiliated papers during a year interval or single year:    
 1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   
 2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `False`.    
-3. Run `python queries.py`  
+3. Run `python queries.py` 
+
+Run `python queries.py --from_year [year] --to_year [year]` e.g. `python queries.py --from_year 2022 --to_year 2022`
 
 ### Find all CAS papers only from curators in a given year or year range.  
 1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.    
