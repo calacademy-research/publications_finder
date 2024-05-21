@@ -63,50 +63,6 @@ def create_engine():
     # Return SQL engine
     return sa.create_engine(connection_string)
 
-# Creating the authors table
-# sql_create_table = """ CREATE TABLE IF NOT EXISTS authors (
-#                                         author_idx INT NOT NULL AUTO_INCREMENT,
-#                                         author_wikidata VARCHAR(45),
-#                                         author_orcid VARCHAR(45),
-#                                         author_alexid VARCHAR(40) NOT NULL,
-#                                         author_name TINYTEXT,
-#                                         author_raw_name TINYTEXT,
-#                                         author_role TINYTEXT,
-#                                         author_department VARCHAR(255),
-#                                         author_active INT,
-#                                         author_notes TINYTEXT,
-#                                         PRIMARY KEY (author_idX)
-#                                         );
-#                                         """
-# DBConnection.execute_query(sql_create_table)
-
-# Load data from csv of authors
-# Note on how to read from files in Docker SQL: 
-# run `SHOW VARIABLES LIKE 'secure_file_priv';` to get the path where files are allowed to be read from
-# will probably be: /var/lib/mysql-files/
-# then run docker cp /path/to/local/file.csv my_mysql_container:/var/lib/mysql-files/
-# change path to your local file and the name/id of the docker container holding your sql db,
-# and path if it's different than above
-
-# only need to do this once so commenting out now. 
-# future updates will prob just need insert ignore/update
-# sql_load_data = """ LOAD DATA INFILE '/var/lib/mysql-files/cas_authorids_v7.tsv'
-#             INTO TABLE authors
-#             FIELDS TERMINATED BY '\t'
-#             LINES TERMINATED BY '\n'
-#             IGNORE 1 LINES
-#             (author_wikidata,
-#             author_orcid,
-#             author_alexid,
-#             author_name,
-#             author_raw_name,
-#             author_role,
-#             author_department,
-#             author_active,
-#             author_notes);
-# """
-# DBConnection.execute_query(sql_load_data)
-
 def concat_authors_works_to_df_csv(engine,
                                    from_year,
                                    to_year,
@@ -127,7 +83,7 @@ def concat_authors_works_to_df_csv(engine,
     """
     query = f"""
         WITH cas_pubs AS (
-            SELECT * FROM `publications`.`comprehensive_global_works_v3` 
+            SELECT * FROM `publications`.`comprehensive_global_works` 
              WHERE institution_name = 'California Academy of Sciences'
              OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
             )
@@ -190,9 +146,10 @@ def single_authors_to_df_csv(engine,
     df: (pandas df) dataframe of query results.
     Also saves csv of dataframe to OUTFILE path.
     """
+    #v3 is my testing table fyi
     query = f"""
         WITH cas_pubs AS (
-            SELECT * FROM `publications`.`comprehensive_global_works_v3` 
+            SELECT * FROM `publications`.`comprehensive_global_works` 
              WHERE institution_name = 'California Academy of Sciences'
              OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
             )
@@ -353,7 +310,7 @@ def parse_args():
     ])
     parser.add_argument('--journal_info', action='store_true')
     parser.add_argument('--open_access_info', action='store_true')
-    # parser.add_argument('--output_file', type=str)
+    
     return parser.parse_args()
 
 def assemble_outfile_path(args):

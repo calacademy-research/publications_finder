@@ -8,7 +8,6 @@ from openalex import OpenAlex
 
 class OpenAlexIngest:
     """Ingests data from API calls that have been restructured for sql insertion."""
-    # we will keep this regardless
     def __init__(self, query_option):
         """
         Initialize the class.
@@ -17,17 +16,12 @@ class OpenAlexIngest:
         query_option (str): What to query by. The options are "by_affiliation" or "by_author_orcid", 
         which will query the API either by affiliation or by author orcid. 
         """
-        # self.table is set by query_data().
-        # This is the sql table that records will be inserted into.
-        # self.table = None
-
         if query_option not in ["by_affiliation", "by_author_orcid"]:
             raise ValueError("query_option must be 'by_affiliation' or 'by_author_orcid'")
         else:
             self.data = self.query_data(query_option)
 
-        # Joe - create the table here.
-        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works_v4 (
+        sql_create_table = """ CREATE TABLE IF NOT EXISTS comprehensive_global_works (
                                             work_id VARCHAR(255) NOT NULL,
                                             work_doi TINYTEXT,
                                             work_title VARCHAR(1000),
@@ -60,15 +54,16 @@ class OpenAlexIngest:
         if query_option == 'by_affiliation':
             works = open_alex.query_by_affiliation()
             return works
-        works = open_alex.query_by_author()
-        return works
+        if query_option == 'by_author_orcid':
+            works = open_alex.query_by_author()
+            return works
 
     def insert_works(self):
         '''Insert works into table by iterating over self.data.'''
           # Use insert ignore to skip records where an author's affiliation
             # is repeated for the same publication. This info is redundant. 
         sql = """
-                INSERT IGNORE INTO comprehensive_global_works_v4
+                INSERT IGNORE INTO comprehensive_global_works
                 (work_id, work_doi,
                 work_title, work_display_name, work_publisher, work_journal,
                 work_publication_year, work_publication_date,
@@ -122,7 +117,7 @@ class OpenAlexIngest:
 
         """
         sql_rm_authors = """
-                DELETE FROM comprehensive_global_works_v4
+                DELETE FROM comprehensive_global_works
                 WHERE author_id IN (
                 'https://openalex.org/A5048870777', 
                 'https://openalex.org/A5086404490',
@@ -135,3 +130,4 @@ class OpenAlexIngest:
             DBConnection.execute_query(sql_rm_authors)
         except Exception as e:
             print(f"Failed to execute query: {e}")
+    

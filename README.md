@@ -1,7 +1,25 @@
 # publications_finder
 
+## Create the MySQL database and ingest publication data from OpenAlex. 
+1. Clone this repository. 
+2. cd to repository location and run `create_database.sh` (make sure this is first step. can't remember)  
+3. Set config options in config.ini. These include:  
+* institutional ROR id (required)  
+* the email to be used for OpenAlex requests to get into the polite pool (optional, but recommended)  
+* ORCIDS of researchers to explicitly search for (useful when authors are missed by institutional affiliation search) (optional)  
+* the from_year and to_year to bound query results (required)  
+4. Run `python main.py`
+
+## Set up authors table in MySQL database & populate with records from a spreadsheet.  
+1. Copy filepath of local spreadsheet with author records.  
+2. Copy the name of the Docker container.
+3. Use that filepath as the --local_sheet_path argument and the Docker container name as the --container_name argument in the following commands.  
+4. To load all the author data for the first time into the authors database table:  
+`python populate_authors.py --local_sheet_path [your path] --container_name [container name] --load_data`  
+5. To update the authors database with modified records from the authors spreadsheet:  
+`python populate_authors.py --local_sheet_path [your path] --container_name [container name] --update_data`  
+
 ## Use cases:
-will change to argparse next. 
 
 ### Find all CAS affiliated papers during a year interval or single year:    
 1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   
