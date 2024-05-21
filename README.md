@@ -4,11 +4,12 @@
 1. Clone this repository. 
 2. cd to repository location and run `create_database.sh` (make sure this is first step. can't remember)  
 3. Set config options in config.ini. These include:  
-* institutional ROR id (required)  
-* the email to be used for OpenAlex requests to get into the polite pool (optional, but recommended)  
-* ORCIDS of researchers to explicitly search for (useful when authors are missed by institutional affiliation search) (optional)  
-* the from_year and to_year to bound query results (required)  
+  * institutional ROR id (required)  
+  * the email to be used for OpenAlex requests to get into the polite pool (optional, but recommended)  
+  * ORCIDS of researchers to explicitly search for (useful when authors are missed by institutional affiliation search) (optional)  
+* the from_year and to_year to bound query results (optional)  
 4. Run `python main.py`
+*** need to add option for just inserting new records***
 
 ## Set up authors table in MySQL database & populate with records from a spreadsheet.  
 1. Copy filepath of local spreadsheet with author records.  
