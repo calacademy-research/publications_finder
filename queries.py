@@ -1,5 +1,5 @@
 """
-Module for querying the publications.comprehensive_global table and returning
+Module for querying the comprehensive_global_works table and returning
 works for a certain period. The works are organized by either concatenated authors
 or by individual authors. The individual authors option provides role and department information
 for each author. The concatenated authors option does not. 
@@ -74,12 +74,14 @@ def concat_authors_works_to_df_csv(engine,
 
     Args:
     engine (sqlalchemy engine instance)
-    output_file (str): csv path of query results. Default is OUTFILE
-    goals (bool): whether or not to sort papers by sustainability goals and display counts of each goal.
+    from_year (int): start year (inclusive)
+    to_year (int): end year (inclusive)
+    output_file (str): csv path to query results.
+
 
     Returns:
     df: (pandas df) df of query results
-    Also saves df as csv into OUTFILE path. 
+    Also saves df as csv into output_file path. 
     """
     query = f"""
         WITH cas_pubs AS (
@@ -91,15 +93,18 @@ def concat_authors_works_to_df_csv(engine,
                 work_id,
                 work_doi,
                 work_display_name,
-                work_type,
                 work_publication_date,
                 work_publication_year,
                 work_publisher,
                 work_journal,
                 GROUP_CONCAT(DISTINCT author_name SEPARATOR ', ') AS authors_concatenated,
                 work_sustainable_dev_goal,
+                work_type,
+                work_topic,
                 work_is_open_access,
-                work_cited_by_count
+                work_cited_by_count,
+                work_created_date,
+                work_updated_date
 
             FROM 
                 cas_pubs
@@ -114,8 +119,12 @@ def concat_authors_works_to_df_csv(engine,
                 work_publisher,
                 work_journal,
                 work_sustainable_dev_goal,
+                work_type,
+                work_topic,
                 work_is_open_access,
-                work_cited_by_count
+                work_cited_by_count,
+                work_created_date,
+                work_updated_date
 
              HAVING
                  work_publication_year >= {from_year}
@@ -124,6 +133,8 @@ def concat_authors_works_to_df_csv(engine,
         """
     df = pd.read_sql_query(query, engine)
     df['work_sustainable_dev_goal'] = df['work_sustainable_dev_goal'].str.replace('-1', 'Uncategorized')
+    df['work_topic'] = df['work_topic'].str.replace('-1', 'Uncategorized')
+    df['work_type'] = df['work_type'].str.replace('-1', 'Uncategorized')
     df.to_csv(output_file, index=False)
     return df
 
@@ -140,15 +151,17 @@ def single_authors_to_df_csv(engine,
 
     Args:
     engine (sqlalchemy engine instance)
-    output_file (str): csv path of query results. Default is OUTFILE.
     curators (bool): Filter for curators vs everyone else.
     department (str): Filter to only get results for certain department.
+    from_year (int): start year (inclusive)
+    to_year (int): end year (inclusive)
+    output_file (str): csv path to query results.
 
     Returns:
     df: (pandas df) dataframe of query results.
-    Also saves csv of dataframe to OUTFILE path.
+    Also saves csv of dataframe to output_file path.
     """
-    #v3 is my testing table fyi
+  
     query = f"""
         WITH cas_pubs AS (
             SELECT * FROM `works`.`comprehensive_global_works` 
@@ -173,8 +186,12 @@ def single_authors_to_df_csv(engine,
                 work_publisher,
                 work_journal,
                 work_sustainable_dev_goal,
+                work_topic,
+                work_type,
                 work_is_open_access,
-                work_cited_by_count
+                work_cited_by_count,
+                work_created_date,
+                work_updated_date
 
             FROM 
                 cas_pubs
@@ -200,8 +217,12 @@ def single_authors_to_df_csv(engine,
                 work_publisher,
                 work_journal,
                 work_sustainable_dev_goal,
+                work_topic,
+                work_type,
                 work_is_open_access,
-                work_cited_by_count
+                work_cited_by_count,
+                work_created_date,
+                work_updated_date
                 
              HAVING
                  work_publication_year >= {from_year}
@@ -210,6 +231,10 @@ def single_authors_to_df_csv(engine,
             ORDER BY cas_pubs.author_name;
 """
     df = pd.read_sql_query(query, engine)
+    df['work_sustainable_dev_goal'] = df['work_sustainable_dev_goal'].str.replace('-1', 'Uncategorized')
+    df['work_topic'] = df['work_topic'].str.replace('-1', 'Uncategorized')
+    df['work_type'] = df['work_type'].replace('-1', 'Uncategorized')
+
     if curators is True:
         df = df[df['author_role'] == 'Curator']
     if curators is False:
@@ -292,9 +317,10 @@ def return_open_access_stats(df):
     Returns:
     prints value counts
     """
-    oa_stats = df['work_is_open_access'].value_counts()
-    print(oa_stats)
-    return oa_stats
+    oa_values = df['work_is_open_access'].value_counts()
+    num_open = len(df[df['work_is_open_access'] == '1'])
+    oa_percent = num_open / len(df) * 100
+    return oa_values, oa_percent
 
 def parse_args():
     """Parse the command line arguments"""
@@ -302,7 +328,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Settings for query results.')
     parser.add_argument('--from_year', type=int, default=2022, help='Start year')
     parser.add_argument('--to_year', type=int, default=2022, help='End year')
-    parser.add_argument('--single_authors', action='store_true')
+    parser.add_argument('--single_authors', action='store_true', help='Trigger by curator or by department results.')
     parser.add_argument('--curators', action='store_true', help='Include curators in the results')
     parser.add_argument('--sustainable_goals', action='store_true', help='Filter for sustainable goals')
     parser.add_argument('--department', type=str, choices=[
@@ -322,7 +348,7 @@ def assemble_outfile_path(args):
     base_path = 'generated_csvs/'
     options = []
 
-    if args.curators:
+    if args.curators is True:
         options.append('curators')
     if args.department:
         options.append(args.department)
@@ -382,8 +408,9 @@ def main():
 
     # if OPEN_ACCESS is True:
     if args.open_access_info:
-        oa_stats = return_open_access_stats(df)
-        print(oa_stats)
+        oa_values, oa_percent = return_open_access_stats(df)
+        print(oa_values)
+        print(f'Percent open access: {oa_percent:.2f}%')
 
 if __name__ == "__main__":
     main()

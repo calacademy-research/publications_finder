@@ -3,56 +3,54 @@
 ## Create the MySQL database and ingest publication data from OpenAlex. 
 1. Clone this repository. 
 2. cd to repository location and run `create_database.sh`
-    * options like the container name and database name/password can be changed in this file.  
-    * (Note to open a shell in the container run `docker exec -it works_mysql bash`)
-      * Run the MySQL client from this container shell to interact directly: `mysql -u root -p` (enter password when prompted)
 3. Set config options in config.ini. These include:  
     * institutional ROR id (required)  
     * email to be used for OpenAlex requests to get into the polite pool (optional, but recommended)  
-    * ORCIDS of researchers to explicitly search for (useful when authors are missed by institutional affiliation search) (optional)  
-    * from_year and to_year to bound query results (optional. if not set, will query everything from the oldest to most recent publication.)  
+    * ORCIDS of researchers to explicitly search for (useful when authors are missed by institutional affiliation search) (optional)    
 4. Run `python main.py`  
     * automatically ingests new records on subsequent runs.
 
 ## Update publication data from OpenAlex (after the steps above have been completed).
 1. Run `python main.py --update_works`
 
-## Set up authors table in MySQL database & populate with records from a spreadsheet.  
-1. Copy filepath of local spreadsheet with author records.  
-2. Copy the name of the Docker container.
-3. Use that filepath as the --local_sheet_path argument and the Docker container name as the --container_name argument in the following commands.  
-4. To load all the author data for the first time into the authors database table:  
+## Set up authors table in MySQL database & populate with records from a tab separated spreadsheet.  
+NOTE: spreadsheet must be tab separated. The CAS sheet is [here.](https://docs.google.com/spreadsheets/d/19bmKGRyV2f6EcHfAov8WR9FQdjmf106UEVbw3OpRDJE/edit#gid=1862259444)  
+1. To load all the author data for the first time into the authors database table:  
 `python populate_authors.py --local_sheet_path [your path] --container_name [container name] --load_data`  
-5. To update the authors database with modified records from the authors spreadsheet:  
+  * Where `[your path]` is the filepath of local downloaded spreadsheet with author records.  
+  * And `[container name]` is the name of the Docker container.   
+2. To update the authors database with modified records from the authors spreadsheet:  
 `python populate_authors.py --local_sheet_path [your path] --container_name [container name] --update_data`  
 
-## Example usage:
+## Use Cases and Examples:
 
-### Find all CAS affiliated papers during a year interval or single year:    
-1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   
-2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `False`.    
-3. Run `python queries.py` 
+### Find all CAS affiliated papers during a year interval or single year:
+  * Saves a csv of query results.
+  * Authors are concatenated into one field.
 
-Run `python queries.py --from_year [year] --to_year [year]` e.g. `python queries.py --from_year 2022 --to_year 2022`
+Run `python queries.py --from_year [year] --to_year [year]`  
+e.g. `python queries.py --from_year 2022 --to_year 2022`
+
+### List all papers by their individual authors during a year interval or single year:
+  * Saves a csv of query results.
+  * Authors are exploded
+    * e.g. publications are repeated for every author on that publication.
+    * This is useful for further filtering and grouping by individual author names, roles, etc. 
+
+Run `python queries.py --single_authors --from_year [year] --to_year [year]`  
+e.g. `python queries.py --single_authors --from_year 2022 --to_year 2022`
 
 ### Find all CAS papers only from curators in a given year or year range.  
-1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.    
-2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.  
-3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `True`.
-4. Run `python queries.py`
 
-### Find all CAS papers only from non-curators in a given year or year range.  
-1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.    
-2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.  
-3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `False`.  
-4. Run `python queries.py`  
+Run `python queries.py --single_authors --curators --from_year [year] --to_year [year]`  
+e.g. `python queries.py --single_authors --curators --from_year 2022 --to_year 2022`
 
-### Find publications by department (picking up aquarium, planetarium, etc)  
- 1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.    
- 2. Set `single_authors` under `[query_results]` in [config.ini](config.ini) to `True`.   
- 3. Set `curators` under `[query_results]` in [config.ini](config.ini) to `False`.  
- 4. Set `department` to one of the allowed values under `[query_results]` in [config.ini](config.ini).
- Allowed values:
+### Find all CAS papers only from non-curators in a given year or year range.   
+Run `python queries.py --single_authors --from_year [year] --to_year [year]`  
+e.g. `python queries.py --single_authors --from_year 2022 --to_year 2022`
+
+### Find publications by department 
+ Set `--department` to one of the following allowed values:  
   Anthropology  
   Aquarium  
   Botany  
@@ -71,35 +69,31 @@ Run `python queries.py --from_year [year] --to_year [year]` e.g. `python queries
   Planetarium  
   Scientific Computing  
 
- 5. Run `python queries.py`  
+ Run `python queries.py --single_authors --department [department] --from_year [year] --to_year [year]`  
+ e.g. `python queries.py --single_authors --department Botany --from_year 2022 --to_year 2022` 
 
-### Toggle a csv of journal information for any of the queries above.
-(Saves a csv sorted by counts and also prints a count of papers by publisher + journal).  
-1. Keep options for desired query.  
-2. Set `journal_info` under `[query_results]` in [config.ini](config.ini) to `True`.   
-3. Run `python queries.py`
+### List journal information for any of the queries above.
+  * Also saves a csv sorted by counts of papers by publisher + journal.  
 
-### Toggle a csv of UN sustainability goals for any of the queries above.
-What goals are we addressing with collections based research?
- (Saves a csv sorted by goal counts and also prints a count of papers by goal).
- 1. Keep options for desired query.  
- 2. Set `sustainable_goals` under `[query_results]` in [config.ini](config.ini) to `True`.  
- 3. Run `python queries.py`    
+Run `python queries.py --single_authors --department [department] --from_year [year] --to_year [year] --journal_info`  
+ e.g. `python queries.py --single_authors --department Botany --from_year 2022 --to_year 2022 --journal_info` 
 
+### Save a csv of UN sustainability goals for any of the queries above.
+(Saves a csv sorted by goal counts and also prints a count of papers by goal).
 
-### Proportion of open access vs closed access publications.  
+Run `python queries.py --single_authors --department [department] --from_year [year] --to_year [year] --sustainable_goals`  
+ e.g. `python queries.py --single_authors --department Botany --from_year 2022 --to_year 2022 --sustainable_goals`   
 
 
+### View proportion of open access vs closed access publications for any of the queries above.
 
-### Send out emails containing the above csv results.  
+Run `python queries.py --from_year [year] --to_year [year] --open_access_info`  
+ e.g. `python queries.py --from_year 2022 --to_year 2022 --open_access_info`  
+
+
+## Send out emails containing the above csv results.  
 options for `send_email.py` in progress. 
 
-
-
- - potentially this is a bad idea; people will always want to edit. Maybe we auto-push to quarterly
- - and annual sheets that people can edit. Create a workflow where people do a google form to add thier 
-   work? or just have them splat it into the sheet? TBD, good times.
- - maricela: make a custom form that has data validation built in? pevent bad data and weird dates, etc. 
 
 
 

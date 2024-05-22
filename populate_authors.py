@@ -1,6 +1,5 @@
-"""Populate author information from a spreadsheet"""
+"""Populate author information from a tab separated spreadsheet"""
 import argparse
-# import mysql.connector
 import subprocess
 import sqlalchemy as sa
 from db_connection import DBConnection
@@ -58,14 +57,14 @@ def populate_authors_table(spreadsheet_path,
     """Create authors table if it doesn't exist. Populate with author info from spreadsheet.
 
     Args:
-    spreadsheet_path(str): Path to spreadsheet that contains author info.
+    spreadsheet_path(str): Path to tab separated spreadsheet that contains author info.
     load_data(bool): Load all data from spreadsheet into authors table. Good for first creation of authors table.
     update_data(bool): Update only the modified records from the spreadsheet into the author table, 
                         and/or add only newly entered authors from spreadsheet.
 
     """
     # Creating the authors table
-    sql_create_table = """ CREATE TABLE IF NOT EXISTS authors_test (
+    sql_create_table = """ CREATE TABLE IF NOT EXISTS authors (
                                         author_wikidata VARCHAR(45),
                                         author_orcid VARCHAR(45),
                                         author_alexid VARCHAR(40) NOT NULL,
@@ -93,7 +92,7 @@ def populate_authors_table(spreadsheet_path,
 
     if load_data is True: # Load all data from sheet
         sql_load_data = f"""LOAD DATA INFILE '{spreadsheet_path}'
-                    INTO TABLE authors_test
+                    INTO TABLE authors
                     FIELDS TERMINATED BY '\t'
                     LINES TERMINATED BY '\n'
                     IGNORE 1 LINES
@@ -142,7 +141,7 @@ def populate_authors_table(spreadsheet_path,
                             """
         DBConnection.execute_query(sql_load_into_temp)
 
-        sql_update_authors = """INSERT INTO authors_test (
+        sql_update_authors = """INSERT INTO authors (
                                     author_wikidata,
                                         author_orcid,
                                         author_alexid,
