@@ -27,6 +27,7 @@ NOTE: spreadsheet must be tab separated. The CAS sheet is [here.](https://docs.g
 ### Find all CAS affiliated papers during a year interval or single year:
   * Saves a csv of query results.
   * Authors are concatenated into one field.
+  * Most useful for counting total CAS papers and getting institutional overview. 
 
 Run `python queries.py --from_year [year] --to_year [year]`  
 e.g. `python queries.py --from_year 2022 --to_year 2022`
