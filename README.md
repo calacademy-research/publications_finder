@@ -19,7 +19,7 @@ NOTE: spreadsheet must be tab separated. The CAS sheet is [here.](https://docs.g
 `python populate_authors.py --local_sheet_path [your path] --container_name [container name] --load_data`  
   * Where `[your path]` is the filepath of local downloaded spreadsheet with author records.  
   * And `[container name]` is the name of the Docker container.   
-2. To update the authors database with modified records from the authors spreadsheet:  
+2. To update the authors table with modified records from the authors spreadsheet:  
 `python populate_authors.py --local_sheet_path [your path] --container_name [container name] --update_data`  
 
 ## Use Cases and Examples:
@@ -31,7 +31,7 @@ NOTE: spreadsheet must be tab separated. The CAS sheet is [here.](https://docs.g
 Run `python queries.py --from_year [year] --to_year [year]`  
 e.g. `python queries.py --from_year 2022 --to_year 2022`
 
-### List all papers by their individual authors during a year interval or single year:
+### Find all papers by their individual authors during a year interval or single year:
   * Saves a csv of query results.
   * Authors are exploded
     * e.g. publications are repeated for every author on that publication.
@@ -72,14 +72,14 @@ e.g. `python queries.py --single_authors --from_year 2022 --to_year 2022`
  Run `python queries.py --single_authors --department [department] --from_year [year] --to_year [year]`  
  e.g. `python queries.py --single_authors --department Botany --from_year 2022 --to_year 2022` 
 
-### List journal information for any of the queries above.
+### View journal information for any of the queries above.
   * Also saves a csv sorted by counts of papers by publisher + journal.  
 
 Run `python queries.py --single_authors --department [department] --from_year [year] --to_year [year] --journal_info`  
  e.g. `python queries.py --single_authors --department Botany --from_year 2022 --to_year 2022 --journal_info` 
 
-### Save a csv of UN sustainability goals for any of the queries above.
-(Saves a csv sorted by goal counts and also prints a count of papers by goal).
+### View UN sustainability goals for any of the queries above.
+  * Also saves a csv sorted by goal counts.
 
 Run `python queries.py --single_authors --department [department] --from_year [year] --to_year [year] --sustainable_goals`  
  e.g. `python queries.py --single_authors --department Botany --from_year 2022 --to_year 2022 --sustainable_goals`   
