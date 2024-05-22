@@ -25,6 +25,7 @@ class OpenAlexIngest:
                                             work_id VARCHAR(255) NOT NULL,
                                             work_doi TINYTEXT,
                                             work_title VARCHAR(1000),
+                                            work_type VARCHAR(100),
                                             work_display_name VARCHAR(1000),
                                             work_publisher VARCHAR(1000),
                                             work_journal VARCHAR(1000),
@@ -34,6 +35,8 @@ class OpenAlexIngest:
                                             work_topic VARCHAR(1000),
                                             work_is_open_access VARCHAR(5),
                                             work_cited_by_count INT,
+                                            work_created_date DATE,
+                                            work_updated_date TIMESTAMP,
                                             author_id VARCHAR(40) NOT NULL,
                                             author_orcid VARCHAR(40),
                                             author_name TINYTEXT,
@@ -65,28 +68,31 @@ class OpenAlexIngest:
         sql = """
                 INSERT IGNORE INTO comprehensive_global_works
                 (work_id, work_doi,
-                work_title, work_display_name, work_publisher, work_journal,
+                work_title, work_type, work_display_name, work_publisher, work_journal,
                 work_publication_year, work_publication_date,
-                work_sustainable_dev_goal, work_topic, work_is_open_access, work_cited_by_count,                     
+                work_sustainable_dev_goal, work_topic, work_is_open_access, work_cited_by_count,
+                work_created_date, work_updated_date,                     
                 author_id, author_orcid, author_name, author_raw_name,
                 author_position, author_is_corresponding,
                 institution_id, institution_name, institution_country_code)
                 VALUES
                 (%s, %s,
-                %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
                 %s, %s,
                 %s, %s, %s, %s,
+                %s, %s,
                 %s, %s, %s, %s,
                 %s, %s,
                 %s, %s, %s)
         """
-        # 21 fields
+        # 24 fields
         try:
             for item in self.data:
                 DBConnection.execute_query(sql, (
                     item['work_id'],
                     item['work_doi'],
                     item['work_title'],
+                    item['work_type'],
                     item['work_display_name'],
                     item['work_publisher'],
                     item['work_journal'],
@@ -96,6 +102,85 @@ class OpenAlexIngest:
                     item['work_topic'],
                     item['work_is_open_access'],
                     item['work_cited_by_count'],
+                    item['work_created_date'],
+                    item['work_updated_date'],
+                    item['author_id'],
+                    item['author_orcid'],
+                    item['author_name'],
+                    item['author_raw_name'],
+                    item['author_position'],
+                    item['author_is_corresponding'],
+                    item['institution_id'],
+                    item['institution_name'],
+                    item['institution_country_code']
+                ))
+            # conn.commit()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    def update_works(self):
+        '''Update field values of works based on keys by iterating over self.data.'''
+        sql = """
+                INSERT INTO comprehensive_global_works
+                (work_id, work_doi,
+                work_title, work_type, work_display_name, work_publisher, work_journal,
+                work_publication_year, work_publication_date,
+                work_sustainable_dev_goal, work_topic, work_is_open_access, work_cited_by_count,
+                work_created_date, work_updated_date,                     
+                author_id, author_orcid, author_name, author_raw_name,
+                author_position, author_is_corresponding,
+                institution_id, institution_name, institution_country_code)
+                VALUES
+                (%s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s,
+                %s, %s, %s, %s,
+                %s, %s,
+                %s, %s, %s, %s,
+                %s, %s,
+                %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                work_doi = VALUES(work_doi),
+                work_title = VALUES(work_title),
+                work_type = VALUES(work_type),
+                work_display_name = VALUES(work_display_name),
+                work_publisher = VALUES(work_publisher),
+                work_journal = VALUES(work_journal),
+                work_publication_year = VALUES(work_publication_year),
+                work_publication_date = VALUES(work_publication_date),
+                work_sustainable_dev_goal = VALUES(work_sustainable_dev_goal),
+                work_topic = VALUES(work_topic),
+                work_is_open_access = VALUES(work_is_open_access),
+                work_cited_by_count = VALUES(work_cited_by_count),
+                work_created_date = VALUES(work_created_date),
+                work_updated_date = VALUES(work_updated_date),
+                author_orcid = VALUES(author_orcid),
+                author_name = VALUES(author_name),
+                author_raw_name = VALUES(author_raw_name),
+                author_position = VALUES(author_position),
+                author_is_corresponding = VALUES(author_is_corresponding),
+                institution_name = VALUES(institution_name),
+                institution_country_code = VALUES(institution_country_code)
+        """
+        # 24 fields
+        try:
+            for item in self.data:
+                DBConnection.execute_query(sql, (
+                    item['work_id'],
+                    item['work_doi'],
+                    item['work_title'],
+                    item['work_type'],
+                    item['work_display_name'],
+                    item['work_publisher'],
+                    item['work_journal'],
+                    item['work_publication_year'],
+                    item['work_publication_date'],
+                    item['work_sustainable_dev_goal'],
+                    item['work_topic'],
+                    item['work_is_open_access'],
+                    item['work_cited_by_count'],
+                    item['work_created_date'],
+                    item['work_updated_date'],
                     item['author_id'],
                     item['author_orcid'],
                     item['author_name'],

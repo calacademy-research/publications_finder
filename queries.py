@@ -83,7 +83,7 @@ def concat_authors_works_to_df_csv(engine,
     """
     query = f"""
         WITH cas_pubs AS (
-            SELECT * FROM `publications`.`comprehensive_global_works` 
+            SELECT * FROM `works`.`comprehensive_global_works` 
              WHERE institution_name = 'California Academy of Sciences'
              OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
             )
@@ -91,6 +91,7 @@ def concat_authors_works_to_df_csv(engine,
                 work_id,
                 work_doi,
                 work_display_name,
+                work_type,
                 work_publication_date,
                 work_publication_year,
                 work_publisher,
@@ -107,6 +108,7 @@ def concat_authors_works_to_df_csv(engine,
                 work_id,
                 work_doi,
                 work_display_name,
+                work_type,
                 work_publication_date,
                 work_publication_year,
                 work_publisher,
@@ -149,7 +151,7 @@ def single_authors_to_df_csv(engine,
     #v3 is my testing table fyi
     query = f"""
         WITH cas_pubs AS (
-            SELECT * FROM `publications`.`comprehensive_global_works` 
+            SELECT * FROM `works`.`comprehensive_global_works` 
              WHERE institution_name = 'California Academy of Sciences'
              OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
             )
@@ -165,6 +167,7 @@ def single_authors_to_df_csv(engine,
                 work_id,
                 work_doi,
                 work_display_name,
+                work_type,
                 work_publication_date,
                 work_publication_year,
                 work_publisher,
@@ -191,6 +194,7 @@ def single_authors_to_df_csv(engine,
                 work_id,
                 work_doi,
                 work_display_name,
+                work_type,
                 work_publication_date,
                 work_publication_year,
                 work_publisher,

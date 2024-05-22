@@ -2,14 +2,20 @@
 
 ## Create the MySQL database and ingest publication data from OpenAlex. 
 1. Clone this repository. 
-2. cd to repository location and run `create_database.sh` (make sure this is first step. can't remember)  
+2. cd to repository location and run `create_database.sh`
+    * options like the container name and database name/password can be changed in this file.  
+    * (Note to open a shell in the container run `docker exec -it works_mysql bash`)
+      * Run the MySQL client from this container shell to interact directly: `mysql -u root -p` (enter password when prompted)
 3. Set config options in config.ini. These include:  
-  * institutional ROR id (required)  
-  * the email to be used for OpenAlex requests to get into the polite pool (optional, but recommended)  
-  * ORCIDS of researchers to explicitly search for (useful when authors are missed by institutional affiliation search) (optional)  
-* the from_year and to_year to bound query results (optional)  
-4. Run `python main.py`
-*** need to add option for just inserting new records***
+    * institutional ROR id (required)  
+    * email to be used for OpenAlex requests to get into the polite pool (optional, but recommended)  
+    * ORCIDS of researchers to explicitly search for (useful when authors are missed by institutional affiliation search) (optional)  
+    * from_year and to_year to bound query results (optional. if not set, will query everything from the oldest to most recent publication.)  
+4. Run `python main.py`  
+    * automatically ingests new records on subsequent runs.
+
+## Update publication data from OpenAlex (after the steps above have been completed).
+1. Run `python main.py --update_works`
 
 ## Set up authors table in MySQL database & populate with records from a spreadsheet.  
 1. Copy filepath of local spreadsheet with author records.  
@@ -20,7 +26,7 @@
 5. To update the authors database with modified records from the authors spreadsheet:  
 `python populate_authors.py --local_sheet_path [your path] --container_name [container name] --update_data`  
 
-## Use cases:
+## Example usage:
 
 ### Find all CAS affiliated papers during a year interval or single year:    
 1. Set `TO_DATE` and `FROM_DATE` under `[years]` in [config.ini](config.ini). Set both `TO_DATE` and `FROM_DATE` to the same value for a single year.   

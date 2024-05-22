@@ -180,11 +180,12 @@ class OpenAlex:
         '''
         cursor = '*'
 
-        # modify these to retrieve other fields as needed.
+        # IMPORTANT! Modify these to retrieve other fields as needed that aren't already included.
         select = ",".join((
             'id',
             'ids',
             'title',
+            'type',
             'display_name',
             'publication_year',
             'publication_date',
@@ -194,8 +195,9 @@ class OpenAlex:
             'cited_by_count',
             'is_retracted',
             'is_paratext',
-            'updated_date',
+            'updated_date', # start adding this to tables? useful for datasets.
             'created_date',
+            'primary_topic',
             'sustainable_development_goals'
         ))
 
@@ -238,12 +240,12 @@ class OpenAlex:
             for authorship in work['authorships']:
                 if authorship:
                     author = authorship['author']
-                    author_id = author['id'] if author else None
-                    author_orcid = author['orcid'] if author else None
-                    author_name = author['display_name'] if author else None
-                    author_raw_name = authorship['raw_author_name'] if author else None
-                    author_position = authorship['author_position'] if author else None
-                    author_is_corresponding = authorship['is_corresponding'] if author else None
+                    author_id = author['id'] if author else -1
+                    author_orcid = author['orcid'] if author else -1
+                    author_name = author['display_name'] if author else -1
+                    author_raw_name = authorship['raw_author_name'] if author else -1
+                    author_position = authorship['author_position'] if author else -1
+                    author_is_corresponding = authorship['is_corresponding'] if author else -1
             
                     if authorship['institutions']:
                         for institution in authorship['institutions']:
@@ -264,6 +266,7 @@ class OpenAlex:
                         'work_id': work['id'],
                         'work_doi': work['ids'].get('doi', -1),
                         'work_title': work['title'],
+                        'work_type': work.get('type', -1),
                         'work_display_name': work['display_name'],
                         'work_publisher': work_publisher,
                         'work_journal': work_journal,
@@ -271,9 +274,12 @@ class OpenAlex:
                         'work_publication_date': work['publication_date'],
                         'work_sustainable_dev_goal': work['sustainable_development_goals'][0]['display_name']
                                                     if work['sustainable_development_goals'] else -1,
-                        'work_topic': work.get('primary_topic', {}).get('display_name', -1),
+                        'work_topic': work['primary_topic'].get('display_name')
+                                        if work['primary_topic'] else -1,
                         'work_is_open_access': work['open_access'].get('is_oa', -1),
                         'work_cited_by_count': work['cited_by_count'],
+                        'work_created_date': work['created_date'],
+                        'work_updated_date': work['updated_date'],
                         'author_id': author_id,
                         'author_orcid': author_orcid,
                         'author_name': author_name,
