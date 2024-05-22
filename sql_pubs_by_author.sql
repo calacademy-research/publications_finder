@@ -1,6 +1,6 @@
 -- Use a CTE that filters works based on affiliation = CAS or author has an orcid that is currently associated with CAS
 WITH cas_pubs AS (
-            SELECT * FROM `publications`.`comprehensive_global_works_v3` 
+            SELECT * FROM `works`.`comprehensive_global_works` 
              WHERE institution_name = 'California Academy of Sciences'
              OR author_orcid in (SELECT author_orcid FROM authors where author_orcid != 'NULL' and author_active=1)
             )
