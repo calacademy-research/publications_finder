@@ -93,7 +93,7 @@ Run `python queries.py --from_year [year] --to_year [year] --open_access_info`
 
 
 ## Send out emails containing the above csv results.  
-options for `send_email.py` in progress. 
+run `python send_emails.py` 
 
 
 

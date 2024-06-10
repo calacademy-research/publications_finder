@@ -40,10 +40,12 @@ from config import Config
 # OUTFILE = base_path + filters
 # print ('Publications csv saved to: ', OUTFILE)
 
-def check_outfile_directory(dir_path='./generated_csvs/'):
+# wrap this all up into a class?
+def check_outfile_directory(dir_path='./generated_csvs2/'):
     """Create directory for generated csvs if it doesn't exist."""
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
+    # add part to clear files in directory otherwise
 
 def create_engine():
     """Create the sqlalchemy engine to generate dataframes and csvs
@@ -345,21 +347,47 @@ def parse_args():
 
 def assemble_outfile_path(args):
     """Assemble outfile path based on command line arguments."""
-    base_path = 'generated_csvs/'
+    base_path = 'generated_csvs2/'
     options = []
 
     if args.curators is True:
         options.append('curators')
     if args.department:
-        options.append(args.department)
+        options.append(args.department.lower())
     if args.from_year:
         options.append(str(args.from_year))
     if args.to_year:
         options.append(str(args.to_year))
 
     filters = "_".join(options)
-    outfile = f"{base_path}{filters}"
+    outfile = f"{base_path}works_{filters}"
     return outfile
+
+def add_filters_to_email_template(args, email_template_path):
+    """Add text to email body that describes the filters applied."""
+    with open (email_template_path, 'w') as file:
+        # Subject
+        file.write('CAS Works csv\n')
+
+        # Body
+        file.write('\nDescription of report parameters:\n')
+        if args.curators is True:
+            file.write('Curator filter applied.\n')
+        if args.department:
+            file.write(f'Results for {args.department} applied.\n')
+        if args.from_year:
+            file.write(f'Results from {args.from_year} applied.\n')
+        if args.to_year:
+            file.write(f'Results until {args.to_year} applied.\n')
+        if args.journal_info:
+            file.write('Results include a csv of journal information.\n')
+        if args.sustainable_goals:
+            file.write('Results include a csv of sustainability goals.\n')
+        if args.open_access_info:
+            file.write('Results include a csv of open access information.\n')
+        
+
+        
 
 
 def main():
@@ -369,6 +397,7 @@ def main():
     outfile = assemble_outfile_path(args)
     print('Publications csv saved to:', outfile + '.csv')
     check_outfile_directory()
+    add_filters_to_email_template(args, 'email_template.txt')
 
     engine = create_engine()
     # if RESULTS_BY_INDIVIDUAL_AUTHOR is True:

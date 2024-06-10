@@ -1,0 +1,7 @@
+CAS Works csv
+
+Description of report parameters:
+Results for Botany applied.
+Results from 2022 applied.
+Results until 2022 applied.
+Results include a csv of journal information.
