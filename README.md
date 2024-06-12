@@ -34,7 +34,7 @@ e.g. `python queries.py --from_year 2022 --to_year 2022`
 
 ### Find all papers by their individual authors during a year interval or single year:
   * Saves a csv of query results.
-  * Authors are exploded
+  * Authors are exploded (papers will appear more than once)
     * e.g. publications are repeated for every author on that publication.
     * This is useful for further filtering and grouping by individual author names, roles, etc. 
 

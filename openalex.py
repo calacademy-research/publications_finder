@@ -56,6 +56,18 @@ class OpenAlex:
 
         return url
 
+    # left for reference, not currently used
+    # we do this manually, it's easier to hit the web site (openalex.org)
+    # and we don't have a use case for a bulk author name query. however, this code works.
+    # example usage:
+    # api = OpenAlex()
+    # author_url = api._build_author_works_url('joseph', 'russack', 'mabarca@calacademy.org')
+    # print(author_url)
+
+    # api.retrieve_author_id('joseph', 'russack')
+    # api.query_by_author()
+
+
     def retrieve_author_id(self,
                                 author_first_name = None, # add to config.ini?
                                 author_last_name = None, # add to config.ini?
@@ -334,10 +346,6 @@ class OpenAlex:
         print("Structuring records for ingestion...")
         structured_data = self._structure_works(all_works)
         return structured_data
-          
-# api = OpenAlex()
-# author_url = api._build_author_works_url('joseph', 'russack', 'mabarca@calacademy.org')
-# print(author_url)
 
-# api.retrieve_author_id('joseph', 'russack')
-# api.query_by_author()
+
+
