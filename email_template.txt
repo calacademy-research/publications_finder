@@ -2,5 +2,4 @@ CAS Works csv
 
 Description of report parameters:
 Results from 2023 applied.
-Results until 2023 applied.
-Results include a csv of open access information.
+Results until 2024 applied.
