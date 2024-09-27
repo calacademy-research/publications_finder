@@ -104,6 +104,9 @@ run `python send_emails.py`
 
 
 # Report issues (bugs, data integrity, etc.)
-Please let us know when you encounter bugs and data quality errors!
+Please let us know when you encounter bugs and data quality errors with out tool!
+You might also search for yourself in [OpenAlex's author profiles](https://openalex.org/authors) to check accuracy of our source data.  
+You can open data curation requests with them by clicking the send feedback exclamation icon. They often take a while to respond though,  
+so open an issue with us as well and we can try to correct errors on our end.
 
 
